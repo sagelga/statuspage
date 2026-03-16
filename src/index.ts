@@ -51,6 +51,15 @@ interface StatusResponse {
   status: ServiceStatus;
   checkedAt: string;
   services: ServiceResult[];
+  history: Record<string, (ServiceStatus | 'nodata')[]>;
+}
+
+interface HistoryMeta {
+  services: Record<string, ServiceStatus>;
+}
+
+interface Env {
+  STATUS_HISTORY?: KVNamespace;
 }
 
 const SERVICES: ServiceDefinition[] = [
@@ -100,12 +109,67 @@ function overallStatus(services: ServiceResult[]): ServiceStatus {
   return 'operational';
 }
 
-async function handleApiStatus(): Promise<Response> {
+function statusSeverity(s: ServiceStatus): number {
+  return s === 'down' ? 2 : s === 'degraded' ? 1 : 0;
+}
+
+async function computeHistory(
+  kv: KVNamespace,
+  serviceIds: string[],
+): Promise<Record<string, (ServiceStatus | 'nodata')[]>> {
+  const now = Date.now();
+  const ninetyDaysAgo = now - 90 * 24 * 3600 * 1000;
+  const dayMap = new Map<string, Record<string, ServiceStatus>>();
+
+  let cursor: string | undefined;
+  do {
+    const page = await kv.list<HistoryMeta>({ limit: 1000, ...(cursor ? { cursor } : {}), metadata: true });
+    for (const key of page.keys) {
+      const ts = parseInt(key.name);
+      if (isNaN(ts) || ts < ninetyDaysAgo) continue;
+      const meta = key.metadata;
+      if (!meta?.services) continue;
+      const day = new Date(ts).toISOString().slice(0, 10);
+      const existing = dayMap.get(day) ?? {};
+      for (const [id, status] of Object.entries(meta.services)) {
+        const prev = existing[id];
+        if (!prev || statusSeverity(status) > statusSeverity(prev)) existing[id] = status;
+      }
+      dayMap.set(day, existing);
+    }
+    cursor = page.list_complete ? undefined : (page as { cursor?: string }).cursor;
+  } while (cursor);
+
+  const result: Record<string, (ServiceStatus | 'nodata')[]> = {};
+  for (const id of serviceIds) {
+    result[id] = [];
+    for (let i = 89; i >= 0; i--) {
+      const day = new Date(now - i * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      result[id].push(dayMap.get(day)?.[id] ?? 'nodata');
+    }
+  }
+  return result;
+}
+
+async function handleApiStatus(kv: KVNamespace | null): Promise<Response> {
   const results = await Promise.all(SERVICES.map(probeService));
+
+  // Write hourly snapshot to KV (key = epoch ms rounded to hour)
+  if (kv) {
+    const key = String(Math.floor(Date.now() / 3600000) * 3600000);
+    const meta: HistoryMeta = { services: Object.fromEntries(results.map(r => [r.id, r.status])) };
+    await kv.put(key, JSON.stringify(meta), {
+      expirationTtl: 91 * 24 * 3600,
+      metadata: meta,
+    });
+  }
+
+  const history = kv ? await computeHistory(kv, SERVICES.map(s => s.id)) : {};
   const body: StatusResponse = {
     status: overallStatus(results),
     checkedAt: new Date().toISOString(),
     services: results,
+    history,
   };
   return new Response(JSON.stringify(body, null, 2), {
     headers: {
@@ -216,16 +280,7 @@ function buildHtml(): string {
     .hero-banner.degraded    .hero-sub { color: var(--warn-text); }
     .hero-banner.down        .hero-sub { color: var(--err-text); }
 
-    .hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; flex-shrink: 0; }
-    .refresh-btn {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      background: rgba(82,0,106,0.1); border: 1px solid rgba(82,0,106,0.25);
-      border-radius: 8px; padding: 0.4rem 0.85rem;
-      font-size: 0.8rem; font-weight: 600; color: var(--brand);
-      cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;
-    }
-    .refresh-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
-    .refresh-btn:hover { background: rgba(82,0,106,0.18); border-color: rgba(82,0,106,0.4); }
+    .hero-actions { display: flex; align-items: flex-end; flex-shrink: 0; }
     .refresh-countdown { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
 
     /* ── Component rows ── */
@@ -324,8 +379,6 @@ function buildHtml(): string {
       .sk { background: #334155; }
       @keyframes shimmer { 0% { background-color: #334155; } 50% { background-color: #1e293b; } 100% { background-color: #334155; } }
       .uptime-bar.nodata { background: #334155; }
-      .refresh-btn { background: rgba(192,132,252,0.1); border-color: rgba(192,132,252,0.25); color: #c084fc; }
-      .refresh-btn:hover { background: rgba(192,132,252,0.18); }
     }
 
     /* ── Responsive ── */
@@ -376,7 +429,6 @@ function buildHtml(): string {
           <p class="hero-sub" id="hero-sub">กรุณารอสักครู่</p>
         </div>
         <div class="hero-actions">
-          <button class="refresh-btn" id="refresh-btn" onclick="loadStatus()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> รีเฟรช</button>
           <span class="refresh-countdown" id="refresh-countdown"></span>
         </div>
       </div>
@@ -532,6 +584,7 @@ function buildHtml(): string {
 
     // ── Auto-refresh ──
     var REFRESH_SEC = 60;
+    var svcHistory = {};
     var countdownTimer = null;
     var secondsLeft = REFRESH_SEC;
 
@@ -553,15 +606,24 @@ function buildHtml(): string {
     }
 
     // ── Uptime bars ──
-    function makeUptimeBars(currentStatus) {
+    function makeUptimeBars(histArr, currentStatus) {
       var html = '';
       var today = new Date();
       for (var i = 89; i >= 0; i--) {
         var d = new Date(today.getTime());
         d.setDate(d.getDate() - i);
         var dateStr = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-        var st = (i === 0) ? currentStatus : 'operational';
-        html += '<div class="uptime-bar ' + st + '" title="' + dateStr + ': ' + (LABELS[st] || st) + '"></div>';
+        var st;
+        var idx = 89 - i;
+        if (histArr && histArr[idx] && histArr[idx] !== 'nodata') {
+          st = histArr[idx];
+        } else if (i === 0) {
+          st = currentStatus;
+        } else {
+          st = 'nodata';
+        }
+        var label = st === 'nodata' ? 'ไม่มีข้อมูล' : (LABELS[st] || st);
+        html += '<div class="uptime-bar ' + st + '" title="' + dateStr + ': ' + label + '"></div>';
       }
       return html;
     }
@@ -583,7 +645,7 @@ function buildHtml(): string {
         '</div>' +
         '<div class="uptime-row">' +
           '<span class="uptime-label">90 วัน</span>' +
-          '<div class="uptime-bars">' + makeUptimeBars(s.status) + '</div>' +
+          '<div class="uptime-bars">' + makeUptimeBars(svcHistory[s.id], s.status) + '</div>' +
           '<span class="uptime-pct ' + pctClass + '">' + pct + '</span>' +
         '</div>' +
       '</div>';
@@ -598,6 +660,7 @@ function buildHtml(): string {
       fetch('/api/status')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+          svcHistory = data.history || {};
           var banner = document.getElementById('hero-banner');
           if (banner) banner.className = 'hero-banner ' + data.status;
           var hi = document.getElementById('hero-icon');
@@ -634,7 +697,7 @@ function buildHtml(): string {
 // ── Request handler ───────────────────────────────────────────────────────
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -648,7 +711,7 @@ export default {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
-    if (url.pathname === '/api/status') return handleApiStatus();
+    if (url.pathname === '/api/status') return handleApiStatus(env.STATUS_HISTORY ?? null);
 
     if (url.pathname === '/' || url.pathname === '') {
       return new Response(buildHtml(), {
@@ -658,4 +721,4 @@ export default {
 
     return new Response('Not Found', { status: 404 });
   },
-} satisfies ExportedHandler;
+} satisfies ExportedHandler<Env>;
