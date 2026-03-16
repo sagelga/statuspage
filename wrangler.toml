@@ -10,4 +10,4 @@ port = 8788
 
 [[kv_namespaces]]
 binding = "STATUS_HISTORY"
-id = "8ded4d8e6c6045a68c6cb8d76137df62"
+id = "80e2c1af6de14efba5d68e03e1f71f28"
