@@ -77,6 +77,7 @@ async function probeService(def: ServiceDefinition): Promise<ServiceResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const start = Date.now();
+  console.log(`[probe] ${def.id} → ${def.url}`);
   try {
     const method = def.jsonStatus ? 'GET' : 'HEAD';
     const response = await fetch(def.url, { method, signal: controller.signal, redirect: 'follow' });
@@ -87,18 +88,23 @@ async function probeService(def: ServiceDefinition): Promise<ServiceResult> {
     let status: ServiceStatus;
     if (!ok) {
       status = 'down';
+      console.warn(`[probe] ${def.id} DOWN — HTTP ${statusCode} (${responseTime}ms)`);
     } else if (def.jsonStatus) {
       const json = await response.json() as Record<string, unknown>;
       const value = String(def.jsonStatus.path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json) ?? '');
       status = def.jsonStatus.map[value] ?? 'degraded';
+      console.log(`[probe] ${def.id} json indicator="${value}" → ${status} (${responseTime}ms)`);
     } else if (responseTime > DEGRADED_THRESHOLD_MS) {
       status = 'degraded';
+      console.warn(`[probe] ${def.id} DEGRADED — ${responseTime}ms > ${DEGRADED_THRESHOLD_MS}ms threshold`);
     } else {
       status = 'operational';
+      console.log(`[probe] ${def.id} operational — ${responseTime}ms HTTP ${statusCode}`);
     }
     return { id: def.id, name: def.name, icon: def.icon, status, responseTime, statusCode };
-  } catch {
+  } catch (err) {
     clearTimeout(timer);
+    console.error(`[probe] ${def.id} ERROR — ${err instanceof Error ? err.message : String(err)}`);
     return { id: def.id, name: def.name, icon: def.icon, status: 'down', responseTime: null, statusCode: null };
   }
 }
@@ -151,17 +157,22 @@ async function computeHistory(
 }
 
 async function handleApiStatus(kv: KVNamespace | null): Promise<Response> {
+  console.log(`[api/status] probing ${SERVICES.length} services`);
   const results = await Promise.all(SERVICES.map(probeService));
+  const overall = overallStatus(results);
+  console.log(`[api/status] overall=${overall} — ${results.map(r => `${r.id}:${r.status}`).join(', ')}`);
 
   // Write hourly snapshot to KV and read history in parallel
   const meta: HistoryMeta = { services: Object.fromEntries(results.map(r => [r.id, r.status])) };
   const history = kv
     ? await (async () => {
         const key = String(Math.floor(Date.now() / 3600000) * 3600000);
+        console.log(`[kv] writing snapshot key=${key}`);
         const [, h] = await Promise.all([
           kv.put(key, '', { expirationTtl: 91 * 24 * 3600, metadata: meta }),
           computeHistory(kv, results.map(r => r.id)),
         ]);
+        console.log(`[kv] snapshot written, history computed for ${Object.keys(h).length} services`);
         return h;
       })()
     : {};
@@ -702,8 +713,10 @@ function buildHtml(): string {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    console.log(`[request] ${request.method} ${url.pathname} cf=${JSON.stringify((request as Request & { cf?: unknown }).cf ?? {})}`);
 
     if (request.method === 'OPTIONS') {
+      console.log(`[request] OPTIONS preflight`);
       return new Response(null, {
         status: 204,
         headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS' },
@@ -711,6 +724,7 @@ export default {
     }
 
     if (request.method !== 'GET') {
+      console.warn(`[request] 405 method not allowed: ${request.method}`);
       return new Response('Method Not Allowed', { status: 405 });
     }
 

@@ -2,6 +2,9 @@ name = "statuspage"
 main = "src/index.ts"
 compatibility_date = "2025-03-16"
 
+[observability]
+enabled = true
+
 [dev]
 port = 8788
 
