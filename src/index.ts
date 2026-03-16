@@ -121,12 +121,17 @@ async function computeHistory(
   const ninetyDaysAgo = now - 90 * 24 * 3600 * 1000;
   const dayMap = new Map<string, Record<string, ServiceStatus>>();
 
+  // Precompute the 90 day strings once (oldest → newest)
+  const days = Array.from({ length: 90 }, (_, i) =>
+    new Date(now - (89 - i) * 24 * 3600 * 1000).toISOString().slice(0, 10),
+  );
+
   let cursor: string | undefined;
   do {
     const page = await kv.list<HistoryMeta>({ limit: 1000, ...(cursor ? { cursor } : {}), metadata: true });
     for (const key of page.keys) {
-      const ts = parseInt(key.name);
-      if (isNaN(ts) || ts < ninetyDaysAgo) continue;
+      const ts = Number(key.name);
+      if (!ts || ts < ninetyDaysAgo) continue;
       const meta = key.metadata;
       if (!meta?.services) continue;
       const day = new Date(ts).toISOString().slice(0, 10);
@@ -140,31 +145,26 @@ async function computeHistory(
     cursor = page.list_complete ? undefined : (page as { cursor?: string }).cursor;
   } while (cursor);
 
-  const result: Record<string, (ServiceStatus | 'nodata')[]> = {};
-  for (const id of serviceIds) {
-    result[id] = [];
-    for (let i = 89; i >= 0; i--) {
-      const day = new Date(now - i * 24 * 3600 * 1000).toISOString().slice(0, 10);
-      result[id].push(dayMap.get(day)?.[id] ?? 'nodata');
-    }
-  }
-  return result;
+  return Object.fromEntries(
+    serviceIds.map(id => [id, days.map(day => dayMap.get(day)?.[id] ?? 'nodata')]),
+  );
 }
 
 async function handleApiStatus(kv: KVNamespace | null): Promise<Response> {
   const results = await Promise.all(SERVICES.map(probeService));
 
-  // Write hourly snapshot to KV (key = epoch ms rounded to hour)
-  if (kv) {
-    const key = String(Math.floor(Date.now() / 3600000) * 3600000);
-    const meta: HistoryMeta = { services: Object.fromEntries(results.map(r => [r.id, r.status])) };
-    await kv.put(key, JSON.stringify(meta), {
-      expirationTtl: 91 * 24 * 3600,
-      metadata: meta,
-    });
-  }
-
-  const history = kv ? await computeHistory(kv, SERVICES.map(s => s.id)) : {};
+  // Write hourly snapshot to KV and read history in parallel
+  const meta: HistoryMeta = { services: Object.fromEntries(results.map(r => [r.id, r.status])) };
+  const history = kv
+    ? await (async () => {
+        const key = String(Math.floor(Date.now() / 3600000) * 3600000);
+        const [, h] = await Promise.all([
+          kv.put(key, '', { expirationTtl: 91 * 24 * 3600, metadata: meta }),
+          computeHistory(kv, results.map(r => r.id)),
+        ]);
+        return h;
+      })()
+    : {};
   const body: StatusResponse = {
     status: overallStatus(results),
     checkedAt: new Date().toISOString(),
@@ -582,6 +582,18 @@ function buildHtml(): string {
       down:        'บางบริการขัดข้อง กำลังดำเนินการแก้ไข',
     };
 
+    // ── Precompute 90-day date strings (oldest first, index 0 = 89 days ago) ──
+    var DATE_STRS = (function() {
+      var arr = [];
+      var today = new Date();
+      for (var i = 89; i >= 0; i--) {
+        var d = new Date(today.getTime());
+        d.setDate(d.getDate() - i);
+        arr.push(d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }));
+      }
+      return arr;
+    })();
+
     // ── Auto-refresh ──
     var REFRESH_SEC = 60;
     var svcHistory = {};
@@ -608,22 +620,12 @@ function buildHtml(): string {
     // ── Uptime bars ──
     function makeUptimeBars(histArr, currentStatus) {
       var html = '';
-      var today = new Date();
-      for (var i = 89; i >= 0; i--) {
-        var d = new Date(today.getTime());
-        d.setDate(d.getDate() - i);
-        var dateStr = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-        var st;
-        var idx = 89 - i;
-        if (histArr && histArr[idx] && histArr[idx] !== 'nodata') {
-          st = histArr[idx];
-        } else if (i === 0) {
-          st = currentStatus;
-        } else {
-          st = 'nodata';
-        }
-        var label = st === 'nodata' ? 'ไม่มีข้อมูล' : (LABELS[st] || st);
-        html += '<div class="uptime-bar ' + st + '" title="' + dateStr + ': ' + label + '"></div>';
+      for (var i = 0; i < 90; i++) {
+        var st = (histArr && histArr[i] && histArr[i] !== 'nodata') ? histArr[i]
+                 : (i === 89) ? currentStatus
+                 : 'nodata';
+        var label = st === 'nodata' ? '\u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25' : (LABELS[st] || st);
+        html += '<div class="uptime-bar ' + st + '" title="' + DATE_STRS[i] + ': ' + label + '"></div>';
       }
       return html;
     }
