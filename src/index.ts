@@ -718,7 +718,12 @@ export default {
 
     if (url.pathname === '/' || url.pathname === '') {
       return new Response(buildHtml(), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Surrogate-Control': 'no-store',
+          'CDN-Cache-Control': 'no-store',
+        },
       });
     }
 
