@@ -89,7 +89,7 @@ async function probeService(def: ServiceDefinition): Promise<ServiceResult> {
       status = 'down';
     } else if (def.jsonStatus) {
       const json = await response.json() as Record<string, unknown>;
-      const value = def.jsonStatus.path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json) as string;
+      const value = String(def.jsonStatus.path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json) ?? '');
       status = def.jsonStatus.map[value] ?? 'degraded';
     } else if (responseTime > DEGRADED_THRESHOLD_MS) {
       status = 'degraded';
