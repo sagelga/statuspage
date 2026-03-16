@@ -51,10 +51,11 @@ interface StatusResponse {
 }
 
 const SERVICES: ServiceDefinition[] = [
-  { id: 'website',     name: 'เว็บไซต์หลัก',    icon: 'globe',      url: 'https://byteside.one' },
-  { id: 'blog',        name: 'บล็อก / บทความ',  icon: 'file-text',  url: 'https://byteside.one/blog' },
-  { id: 'images',      name: 'รูปภาพ / สื่อ',   icon: 'image',      url: 'https://byteside.one/img/social-card.jpg' },
-  { id: 'notion-sync', name: 'Notion Sync API', icon: 'refresh-cw', url: 'https://notion-sync.byteside.workers.dev/api/health' },
+  { id: 'cloudflare',  name: 'Cloudflare',          icon: 'shield',     url: 'https://www.cloudflarestatus.com/' },
+  { id: 'website',     name: 'เว็บไซต์ (Beta)',     icon: 'globe',      url: 'https://beta.byteside.one' },
+  { id: 'r2-content',  name: 'R2 Content (s.byteside.one)', icon: 'image', url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
+  { id: 'notion-sync', name: 'Notion Sync Worker',  icon: 'refresh-cw', url: 'https://notion-sync.byteside.workers.dev/api/health' },
+  { id: 'notion',      name: 'Notion',              icon: 'database',   url: 'https://www.notion.so/' },
 ];
 
 // ── Probe logic ───────────────────────────────────────────────────────────
