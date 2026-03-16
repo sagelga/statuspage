@@ -63,12 +63,12 @@ interface Env {
 }
 
 const SERVICES: ServiceDefinition[] = [
-  { id: 'cloudflare',  name: 'Cloudflare',          icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json',
+  { id: 'cloudflare',  name: 'Cloudflare Network',      icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json',
     jsonStatus: { path: 'status.indicator', map: { none: 'operational', minor: 'degraded', major: 'down', critical: 'down' } } },
-  { id: 'website',     name: 'เว็บไซต์ (Beta)',     icon: 'globe',      url: 'https://beta.byteside.one' },
-  { id: 'r2-content',  name: 'R2 Content (s.byteside.one)', icon: 'image', url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
-  { id: 'notion-sync', name: 'Notion Sync Worker',  icon: 'refresh-cw', url: 'https://fetcher.byteside.one/api/health' },
-  { id: 'notion',      name: 'Notion',              icon: 'database',   url: 'https://www.notion.so/' },
+  { id: 'website',     name: 'ByteSide Website (Beta)', icon: 'globe',      url: 'https://beta.byteside.one' },
+  { id: 'r2-content',  name: 'Media CDN (R2)',          icon: 'image',      url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
+  { id: 'notion-sync', name: 'Content Sync Worker',     icon: 'refresh-cw', url: 'https://fetcher.byteside.one/api/health' },
+  { id: 'notion',      name: 'Notion Database',         icon: 'database',   url: 'https://www.notion.so/' },
 ];
 
 // ── Probe logic ───────────────────────────────────────────────────────────
