@@ -36,6 +36,9 @@ interface ServiceDefinition {
   name: string;
   icon: string;
   url: string;
+  // If set, GET the URL, parse JSON, and map the value at this dot-path to a status.
+  // statusMap keys are the possible values; values are 'operational' | 'degraded' | 'down'.
+  jsonStatus?: { path: string; map: Record<string, ServiceStatus> };
 }
 
 interface ServiceResult extends Omit<ServiceDefinition, 'url'> {
@@ -51,10 +54,11 @@ interface StatusResponse {
 }
 
 const SERVICES: ServiceDefinition[] = [
-  { id: 'cloudflare',  name: 'Cloudflare',          icon: 'shield',     url: 'https://www.cloudflarestatus.com/' },
+  { id: 'cloudflare',  name: 'Cloudflare',          icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json',
+    jsonStatus: { path: 'status.indicator', map: { none: 'operational', minor: 'degraded', major: 'down', critical: 'down' } } },
   { id: 'website',     name: 'เว็บไซต์ (Beta)',     icon: 'globe',      url: 'https://beta.byteside.one' },
   { id: 'r2-content',  name: 'R2 Content (s.byteside.one)', icon: 'image', url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
-  { id: 'notion-sync', name: 'Notion Sync Worker',  icon: 'refresh-cw', url: 'https://fetcher.byteside.one' },
+  { id: 'notion-sync', name: 'Notion Sync Worker',  icon: 'refresh-cw', url: 'https://fetcher.byteside.one/api/health' },
   { id: 'notion',      name: 'Notion',              icon: 'database',   url: 'https://www.notion.so/' },
 ];
 
@@ -65,15 +69,24 @@ async function probeService(def: ServiceDefinition): Promise<ServiceResult> {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const start = Date.now();
   try {
-    const response = await fetch(def.url, { method: 'HEAD', signal: controller.signal, redirect: 'follow' });
+    const method = def.jsonStatus ? 'GET' : 'HEAD';
+    const response = await fetch(def.url, { method, signal: controller.signal, redirect: 'follow' });
     clearTimeout(timer);
     const responseTime = Date.now() - start;
     const statusCode = response.status;
     const ok = statusCode >= 200 && statusCode < 400;
     let status: ServiceStatus;
-    if (!ok) status = 'down';
-    else if (responseTime > DEGRADED_THRESHOLD_MS) status = 'degraded';
-    else status = 'operational';
+    if (!ok) {
+      status = 'down';
+    } else if (def.jsonStatus) {
+      const json = await response.json() as Record<string, unknown>;
+      const value = def.jsonStatus.path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], json) as string;
+      status = def.jsonStatus.map[value] ?? 'degraded';
+    } else if (responseTime > DEGRADED_THRESHOLD_MS) {
+      status = 'degraded';
+    } else {
+      status = 'operational';
+    }
     return { id: def.id, name: def.name, icon: def.icon, status, responseTime, statusCode };
   } catch {
     clearTimeout(timer);
