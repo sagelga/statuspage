@@ -122,8 +122,8 @@ function buildHtml(): string {
       --brand:      ${SITE_CONFIG.brandColor};
       --brand-dark: ${SITE_CONFIG.brandDark};
       --ok:         #16a34a; --ok-bg:   #dcfce7; --ok-border:   #86efac; --ok-text:   #14532d;
-      --warn:       #d97706; --warn-bg: #fef3c7; --warn-border: #fcd34d; --warn-text: #78350f;
-      --err:        #dc2626; --err-bg:  #fee2e2; --err-border:  #fca5a5; --err-text:  #7f1d1d;
+      --warn:       #FF7600; --warn-bg: #fff4e6; --warn-border: #ffb347; --warn-text: #7c2d12;
+      --err:        #CD113B; --err-bg:  #fef0f3; --err-border:  #f9a8bc; --err-text:  #7a0e29;
       --gray:       #6b7280;
       --max-w:      900px;
       --card-bg:    #ffffff; --card-border: #e5e7eb;
