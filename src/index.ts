@@ -15,7 +15,7 @@ const LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACAAAAAIACAY
 // ── Site configuration — edit this for each deployment ───────────────────
 const SITE_CONFIG = {
   name:         'ByteSide.one',
-  url:          'https://byteside.one',
+  url:          'https://status.sagelga.com',
   brandColor:   '#52006A',
   brandDark:    '#3d004f',
   tagline:      'เว็บไซต์ข่าวเทคโนโลยีและเกมมิ่ง สำหรับคนไทยที่รักเทคโนโลยี รีวิว ทิปส์ และบทความเชิงลึกที่คุณไว้วางใจได้',
