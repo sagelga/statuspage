@@ -594,22 +594,22 @@ function buildHtml(): string {
       return arr;
     })();
 
-    // ── Auto-refresh ──
-    var REFRESH_SEC = 60;
+    // ── Auto-refresh (aligned to real clock minute boundary) ──
     var svcHistory = {};
     var countdownTimer = null;
-    var secondsLeft = REFRESH_SEC;
+    var refreshTimer = null;
 
     function startCountdown() {
       if (countdownTimer) clearInterval(countdownTimer);
-      secondsLeft = REFRESH_SEC;
+      if (refreshTimer) clearTimeout(refreshTimer);
       var el = document.getElementById('refresh-countdown');
-      if (el) el.textContent = 'รีเฟรชใน ' + secondsLeft + ' วิ';
-      countdownTimer = setInterval(function() {
-        secondsLeft--;
-        if (secondsLeft <= 0) { clearInterval(countdownTimer); loadStatus(); }
-        else if (el) el.textContent = 'รีเฟรชใน ' + secondsLeft + ' วิ';
-      }, 1000);
+      function tick() {
+        var sec = Math.ceil((60000 - (Date.now() % 60000)) / 1000);
+        if (el) el.textContent = '\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e43\u0e19 ' + sec + ' \u0e27\u0e34';
+      }
+      tick();
+      countdownTimer = setInterval(tick, 1000);
+      refreshTimer = setTimeout(loadStatus, 60000 - (Date.now() % 60000));
     }
 
     // ── Badge ──
@@ -656,6 +656,7 @@ function buildHtml(): string {
     // ── Load status ──
     function loadStatus() {
       if (countdownTimer) clearInterval(countdownTimer);
+      if (refreshTimer) clearTimeout(refreshTimer);
       var countdown = document.getElementById('refresh-countdown');
       if (countdown) countdown.textContent = 'กำลังโหลด...';
 
