@@ -11,3 +11,6 @@ port = 8788
 [[kv_namespaces]]
 binding = "STATUS_HISTORY"
 id = "80e2c1af6de14efba5d68e03e1f71f28"
+
+[triggers]
+crons = ["* * * * *"]

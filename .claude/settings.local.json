@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(CLOUDFLARE_ACCOUNT_ID=127cb9e78afd07cefc1daf1bc3466221 npx wrangler r2 bucket info bytesideone 2>&1)",
+      "Bash(CLOUDFLARE_ACCOUNT_ID=127cb9e78afd07cefc1daf1bc3466221 npx wrangler r2 object list bytesideone 2>&1 | head -30)",
+      "mcp__claude_ai_Cloudflare_Developer_Platform__kv_namespace_create",
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "Bash(npx wrangler:*)",
+      "Bash(curl:*)",
+      "mcp__claude_ai_Cloudflare_Developer_Platform__set_active_account",
+      "mcp__claude_ai_Cloudflare_Developer_Platform__kv_namespaces_list",
+      "Bash(CLOUDFLARE_ACCOUNT_ID=9124272a5c3e327f2e943bf27c0910c4 npm run deploy 2>&1)",
+      "Bash(cp /Users/kumamon/Developer/statuspage/src/index.ts /tmp/full_index.ts)",
+      "Read(//tmp/**)",
+      "Bash(awk:*)",
+      "Bash(npm run:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(npm list:*)",
+      "Bash(node:*)"
+    ]
+  }
+}
