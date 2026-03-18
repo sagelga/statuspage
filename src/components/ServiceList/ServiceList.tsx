@@ -31,9 +31,18 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
   const minuteCache = useRef<Record<string, (ServiceStatus | 'nodata')[]>>({});
 
   // Clear minute cache when history data changes (on refresh)
+  // But preserve expanded state if user has a day selected (locked)
   useEffect(() => {
     minuteCache.current = {};
-    setExpanded(null);
+    // Only close expanded if it's not locked (user actively viewing)
+    setExpanded(prev => {
+      if (!prev) return null;
+      if (prev.locked) {
+        // Keep it open but mark as stale - will re-fetch if user interacts again
+        return { ...prev, loading: false };
+      }
+      return null;
+    });
   }, [history]);
 
   useEffect(() => {
