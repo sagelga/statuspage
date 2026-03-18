@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './RefreshTimer.style.css';
 
 interface RefreshTimerProps {
@@ -10,6 +10,7 @@ interface RefreshTimerProps {
 export const RefreshTimer: React.FC<RefreshTimerProps> = ({ lastUpdated, refreshInterval = 60, onRefresh }) => {
   const [remaining, setRemaining] = useState(refreshInterval);
   const [flashing, setFlashing] = useState(false);
+  const isInitialMount = useRef(true);
   const size = 16;
   const strokeWidth = 2;
   const radius = (size - strokeWidth) / 2;
@@ -44,14 +45,16 @@ export const RefreshTimer: React.FC<RefreshTimerProps> = ({ lastUpdated, refresh
       });
     };
 
-    // On mount or when lastUpdated changes (manual refresh/page load),
-    // calculate time to next minute boundary
-    const initialRefresh = calculateNextRefresh();
-    setRemaining(initialRefresh);
+    // Only set initial time on first mount, not on every data refresh
+    if (isInitialMount.current) {
+      const initialRefresh = calculateNextRefresh();
+      setRemaining(initialRefresh);
+      isInitialMount.current = false;
+    }
 
     const intervalId = setInterval(update, 1000);
     return () => clearInterval(intervalId);
-  }, [lastUpdated, onRefresh]);
+  }, [onRefresh]);
 
   const progress = Math.max(0, Math.min(1, remaining / refreshInterval));
   const offset = circumference * (1 - progress);
