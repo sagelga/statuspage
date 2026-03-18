@@ -203,18 +203,14 @@
 /* Full-width grid: 12 rows × 60 columns */
 .mosaic-half-grid {
   display: grid;
-  grid-template-columns: repeat(60, 4px);
+  grid-template-columns: repeat(60, 1fr);
   grid-auto-rows: 5px;
-  gap: 1px;
-  width: fit-content;
+  gap: 1.5px;
+  width: 100%;
 }
 
 /* Cells */
-.mosaic-cell {
-  width: 4px;
-  height: 5px;
-  border-radius: 1px;
-}
+.mosaic-cell { border-radius: 1px; }
 .mosaic-cell.operational { background: var(--ok); }
 .mosaic-cell.degraded    { background: var(--warn); }
 .mosaic-cell.down        { background: var(--err); }
