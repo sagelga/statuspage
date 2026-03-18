@@ -1,0 +1,14 @@
+/* RefreshTimer Component Styles */
+
+.refresh-timer-container { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; font-weight: 600; height: 1.25rem; }
+.refresh-timer { position: relative; width: 18px; height: 18px; flex-shrink: 0; }
+.refresh-timer circle { stroke: rgba(0,0,0,0.1); }
+:root.dark-theme .refresh-timer circle { stroke: rgba(255,255,255,0.1); }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .refresh-timer circle { stroke: rgba(255,255,255,0.1); }
+}
+.timer-progress { stroke: var(--brand); transition: stroke-dashoffset 0.35s linear; }
+.timer-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; color: var(--text-muted); }
+.refresh-timer-text { white-space: nowrap; line-height: 1; display: flex; align-items: center; gap: 4px; }
+.refresh-timer-value { font-family: var(--font-mono); }
+.refresh-timer-container.refresh-flash { animation: refresh-flash 0.5s var(--ease-out-quart) both; }

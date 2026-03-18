@@ -1,16 +1,11 @@
 name = "statuspage"
-main = "src/index.ts"
-compatibility_date = "2025-03-16"
+compatibility_date = "2026-03-16"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
 
 [observability]
 enabled = true
 
-[dev]
-port = 8788
-
 [[kv_namespaces]]
 binding = "STATUS_HISTORY"
 id = "80e2c1af6de14efba5d68e03e1f71f28"
-
-[triggers]
-crons = ["* * * * *"]

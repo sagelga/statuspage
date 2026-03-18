@@ -1,0 +1,45 @@
+.brand-toggle {
+  display: inline-flex;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 99px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 1.75rem;
+}
+
+.brand-toggle-btn {
+  padding: 0.35rem 1rem;
+  border-radius: 99px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-th);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+
+.brand-toggle-btn:hover:not(.active) {
+  background: var(--gray-bg);
+  color: var(--text);
+}
+
+.brand-toggle-btn.active {
+  background: var(--brand);
+  color: #fff;
+}
+
+:root.dark-theme .brand-toggle-btn.active {
+  background: #7c3aed;
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .brand-toggle-btn.active {
+    background: #7c3aed;
+    color: #fff;
+  }
+}

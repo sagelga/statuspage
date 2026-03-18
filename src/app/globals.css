@@ -1,0 +1,324 @@
+/* ===================================
+   Global Styles - ByteSide.one Status
+   =================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----- CSS Variables ----- */
+:root {
+  --max-w: 960px;
+  --brand: #52006A;
+  --brand-dark: #3d004f;
+  --font-th: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  
+  /* Status colors */
+  --ok: #16a34a; --ok-bg: #dcfce7; --ok-text: #166534;
+  --warn: #ca8a04; --warn-bg: #fef9c3; --warn-text: #854d0e;
+  --err: #dc2626; --err-bg: #fee2e2; --err-text: #991b1b;
+  --gray: #6b7280; --gray-bg: #f3f4f6;
+  
+  /* Light theme */
+  --card-bg: #fdfcff; --card-border: #e9e4f0;
+  --page-bg: #f5f3f8; --text: #111827; --text-muted: #6b7280;
+
+  /* Easing */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root.dark-theme {
+  --card-bg: #130d1c; --card-border: #2a1f35;
+  --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) {
+    --card-bg: #130d1c; --card-border: #2a1f35;
+    --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
+  }
+}
+
+/* ----- Base Styles ----- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-th);
+  background: var(--page-bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: var(--brand); text-decoration: none; }
+a:hover { color: var(--brand-dark); }
+
+.page-wrap { max-width: var(--max-w); margin: 0 auto; padding: 2rem 2rem 4rem; transition: opacity 0.16s var(--ease-out-quart); }
+.page-wrap.brand-fade { opacity: 0; }
+
+.about-blurb {
+  margin-bottom: 2rem;
+  border-left: 3px solid var(--brand);
+  padding-left: 1rem;
+  font-size: 0.925rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+:root.dark-theme .about-blurb { border-left-color: #c084fc; }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .about-blurb { border-left-color: #c084fc; }
+}
+
+/* ----- Keyframes ----- */
+@keyframes pulse    { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes shimmer  { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin     { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fade-up  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes breathe  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes urgent   { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+@keyframes badge-in { from { opacity: 0; transform: scale(0.75); } to { opacity: 1; transform: scale(1); } }
+@keyframes refresh-flash { 0% { opacity: 1; } 40% { opacity: 0.3; transform: scale(0.92); } 100% { opacity: 1; transform: scale(1); } }
+
+/* ----- Reduced motion ----- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .page-wrap, .page-wrap.brand-fade { opacity: 1 !important; transition: none !important; }
+}
+
+/* ----- Shared Components ----- */
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.2rem 0.55rem; border-radius: 99px;
+  font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+  letter-spacing: 0.01em;
+  animation: badge-in 0.3s var(--ease-out-expo) both;
+}
+.dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.badge.loading { background: var(--gray-bg); color: var(--gray); }
+.badge.loading .dot { background: var(--gray); animation: pulse 1.5s infinite; }
+.badge.down .dot { animation: urgent 0.9s ease-in-out infinite; }
+.badge.operational { background: var(--ok-bg); color: var(--ok-text); }
+.badge.operational .dot { background: var(--ok); }
+.badge.degraded { background: var(--warn-bg); color: var(--warn-text); }
+.badge.degraded .dot { background: var(--warn); }
+.badge.down { background: var(--err-bg); color: var(--err-text); }
+.badge.down .dot { background: var(--err); }
+
+/* Dark theme badges */
+:root.dark-theme .badge.operational { background: rgba(22,163,74,0.2); color: #4ade80; }
+:root.dark-theme .badge.degraded { background: rgba(202,138,4,0.2); color: #facc15; }
+:root.dark-theme .badge.down { background: rgba(220,38,38,0.2); color: #f87171; }
+:root.dark-theme .dot.operational { background: #4ade80; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .badge.operational { background: rgba(22,163,74,0.2); color: #4ade80; }
+  :root:not(.light-theme) .badge.degraded { background: rgba(202,138,4,0.2); color: #facc15; }
+  :root:not(.light-theme) .badge.down { background: rgba(220,38,38,0.2); color: #f87171; }
+  :root:not(.light-theme) .dot.operational { background: #4ade80; }
+}
+
+/* Cards */
+.card, .api-card, .incident-card, .components-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+}
+.api-card, .incident-card { padding: 1.5rem; }
+:root.dark-theme .api-card, :root.dark-theme .incident-card {
+  background: #0e0818; border-color: #2a1f35;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .api-card, :root:not(.light-theme) .incident-card {
+    background: #0e0818; border-color: #2a1f35;
+  }
+}
+
+/* Uptime bars */
+.uptime-bars { width: 100%; display: flex; gap: 2px; height: 32px; align-items: stretch; }
+.uptime-bar { flex: 1; border-radius: 2px; cursor: pointer; min-width: 2px; transition: opacity 0.18s var(--ease-out-quart), transform 0.18s var(--ease-out-quart), box-shadow 0.18s var(--ease-out-quart); transform-origin: bottom center; }
+.uptime-bar:hover:not(.selected) { opacity: 0.75; transform: scaleY(1.18); }
+.uptime-bar.operational { background: var(--ok); }
+.uptime-bar.degraded { background: var(--warn); }
+.uptime-bar.down { background: var(--err); }
+
+/* Skeleton */
+.skeleton-row { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--card-border); }
+.skeleton-row:last-child { border-bottom: none; }
+.sk-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
+.sk { background: var(--gray-bg); border-radius: 4px; animation: shimmer 1.5s infinite; }
+:root.dark-theme .sk { background: rgba(255,255,255,0.08); }
+@media (prefers-color-scheme: dark) { :root:not(.light-theme) .sk { background: rgba(255,255,255,0.08); } }
+.sk-icon { width: 20px; height: 20px; }
+.sk-name { height: 14px; width: 140px; }
+.sk-badge { height: 22px; width: 70px; border-radius: 99px; }
+.sk-bars { height: 28px; border-radius: 3px; }
+
+/* Section */
+.section { margin-bottom: 2.5rem; animation: fade-up 0.45s var(--ease-out-quart) 0.15s both; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-meta { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+.section-title {
+  font-size: 1.25rem; font-weight: 700; color: var(--brand);
+  letter-spacing: -0.01em;
+  padding-top: 0.6rem;
+  border-top: 2px solid var(--brand);
+  display: inline-block;
+}
+:root.dark-theme .section-title { color: #c084fc; border-top-color: #c084fc; }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .section-title { color: #c084fc; border-top-color: #c084fc; }
+}
+
+/* Utilities */
+.response-time {
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+  background: rgba(0,0,0,0.07); padding: 0.15rem 0.4rem; border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+:root.dark-theme .response-time { background: rgba(255,255,255,0.08); }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .response-time { background: rgba(255,255,255,0.08); }
+}
+
+/* Focus ring — always visible for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:root.dark-theme :focus-visible { outline-color: #c084fc; }
+@media (prefers-color-scheme: dark) { :root:not(.light-theme) :focus-visible { outline-color: #c084fc; } }
+
+.spin { animation: spin 1s linear infinite; transform-origin: center; }
+
+/* ─── sagelga brand theme ─────────────────────────────────────────
+   Warm palette: navy brand (#3B4A8C) + amber accent (#C9943A).
+   Light mode: warm parchment. Dark mode: warm dark.
+   Placed last so equal-specificity rules win via source order.
+   ────────────────────────────────────────────────────────────────── */
+
+/* Brand vars — constant across light/dark */
+:root.sagelga-brand {
+  --brand:      #3B4A8C;
+  --brand-dark: #2d3a6e;
+}
+
+/* sagelga light palette */
+:root.sagelga-brand.light-theme {
+  --page-bg:    #f4f2ee;
+  --card-bg:    #faf8f5;
+  --card-border: #e0dbd3;
+  --text:       #1c1a16;
+  --text-muted: #7a7166;
+  --gray-bg:    #eceae5;
+}
+
+/* sagelga dark palette — explicit toggle */
+:root.sagelga-brand.dark-theme {
+  --page-bg:    #1A1814;
+  --card-bg:    #252219;
+  --card-border: rgba(240, 234, 214, 0.09);
+  --text:       #F0EAD6;
+  --text-muted: #9A9485;
+  --gray-bg:    rgba(240, 234, 214, 0.06);
+  --ok:      #22c55e; --ok-bg:   rgba(34, 197, 94, 0.15);  --ok-text:   #86efac;
+  --warn:    #f59e0b; --warn-bg: rgba(245, 158, 11, 0.15); --warn-text: #fcd34d;
+  --err:     #ef4444; --err-bg:  rgba(239, 68, 68, 0.15);  --err-text:  #fca5a5;
+}
+
+/* sagelga dark — OS preference */
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) {
+    --page-bg:    #1A1814;
+    --card-bg:    #252219;
+    --card-border: rgba(240, 234, 214, 0.09);
+    --text:       #F0EAD6;
+    --text-muted: #9A9485;
+    --gray-bg:    rgba(240, 234, 214, 0.06);
+    --ok:      #22c55e; --ok-bg:   rgba(34, 197, 94, 0.15);  --ok-text:   #86efac;
+    --warn:    #f59e0b; --warn-bg: rgba(245, 158, 11, 0.15); --warn-text: #fcd34d;
+    --err:     #ef4444; --err-bg:  rgba(239, 68, 68, 0.15);  --err-text:  #fca5a5;
+  }
+}
+
+/* Links */
+:root.sagelga-brand a                        { color: #C9943A; }
+:root.sagelga-brand a:hover                  { color: #d9a84a; }
+
+/* Navbar — always navy regardless of light/dark */
+:root.sagelga-brand .navbar                  { background: #3B4A8C; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+:root.sagelga-brand .nav-top                 { border-bottom-color: rgba(255,255,255,0.15); }
+:root.sagelga-brand .nav-bottom              { background: rgba(0,0,0,0.15); }
+
+/* Footer — uses CSS vars so it adapts to light/dark */
+:root.sagelga-brand .footer                  { background: var(--page-bg); color: var(--text-muted); }
+:root.sagelga-brand .footer-divider          { border-top-color: var(--card-border); }
+:root.sagelga-brand .footer-col-title        { color: var(--text); }
+:root.sagelga-brand .footer-col a            { color: var(--text-muted) !important; }
+:root.sagelga-brand .footer-col a:hover      { color: #C9943A !important; }
+:root.sagelga-brand .footer-bottom           { color: var(--text-muted); border-top-color: var(--card-border); }
+:root.sagelga-brand .footer-logo-text        { color: var(--text); }
+:root.sagelga-brand .footer-tagline          { color: var(--text-muted); }
+:root.sagelga-brand .footer-toggle-btn       { background: var(--card-bg); border-color: var(--card-border); color: var(--text-muted); }
+:root.sagelga-brand .footer-toggle-btn:hover { border-color: #C9943A; color: var(--text); }
+:root.sagelga-brand .footer-theme-toggle     { color: var(--text-muted); }
+:root.sagelga-brand .footer-author           { color: #C9943A !important; }
+:root.sagelga-brand .footer-author:hover     { color: #d9a84a !important; }
+
+/* Cards — use vars */
+:root.sagelga-brand .api-card,
+:root.sagelga-brand .incident-card           { background: var(--card-bg); border-color: var(--card-border); }
+
+/* Section title — accent becomes amber */
+:root.sagelga-brand .section-title           { color: #C9943A; border-top-color: #C9943A; }
+
+/* About blurb border */
+:root.sagelga-brand .about-blurb             { border-left-color: #C9943A; }
+
+/* Focus ring */
+:root.sagelga-brand :focus-visible           { outline-color: #C9943A; }
+
+/* Skeleton shimmer — light uses warm gray, dark uses warm white */
+:root.sagelga-brand .sk                      { background: rgba(100, 92, 75, 0.1); }
+:root.sagelga-brand.dark-theme .sk           { background: rgba(240, 234, 214, 0.07); }
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) .sk  { background: rgba(240, 234, 214, 0.07); }
+}
+
+/* Uptime — nodata bars */
+:root.sagelga-brand .uptime-bar.nodata            { background: rgba(100, 92, 75, 0.15); }
+:root.sagelga-brand .uptime-legend-dot.nodata     { background: rgba(100, 92, 75, 0.15); }
+:root.sagelga-brand.dark-theme .uptime-bar.nodata        { background: rgba(240, 234, 214, 0.1); }
+:root.sagelga-brand.dark-theme .uptime-legend-dot.nodata { background: rgba(240, 234, 214, 0.1); }
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) .uptime-bar.nodata        { background: rgba(240, 234, 214, 0.1); }
+  :root.sagelga-brand:not(.light-theme) .uptime-legend-dot.nodata { background: rgba(240, 234, 214, 0.1); }
+}
+
+/* Mosaic — nodata cells */
+:root.sagelga-brand .mosaic-cell.nodata                              { background: rgba(100, 92, 75, 0.12); }
+:root.sagelga-brand .mosaic-half-grid.mosaic-loading .mosaic-cell   { background: rgba(100, 92, 75, 0.1); }
+:root.sagelga-brand.dark-theme .mosaic-cell.nodata                   { background: rgba(240, 234, 214, 0.07); }
+:root.sagelga-brand.dark-theme .mosaic-half-grid.mosaic-loading .mosaic-cell { background: rgba(240, 234, 214, 0.07); }
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) .mosaic-cell.nodata                   { background: rgba(240, 234, 214, 0.07); }
+  :root.sagelga-brand:not(.light-theme) .mosaic-half-grid.mosaic-loading .mosaic-cell { background: rgba(240, 234, 214, 0.07); }
+}
+
+/* Response time pill */
+:root.sagelga-brand .response-time                { background: rgba(100, 92, 75, 0.1); }
+:root.sagelga-brand.dark-theme .response-time     { background: rgba(240, 234, 214, 0.07); }
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) .response-time { background: rgba(240, 234, 214, 0.07); }
+}
+
+/* Brand toggle */
+:root.sagelga-brand .brand-toggle-btn.active             { background: #3B4A8C; color: #F0EAD6; }
+:root.sagelga-brand .brand-toggle-btn:hover:not(.active) { background: rgba(59,74,140,0.08); color: var(--text); }

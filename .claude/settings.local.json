@@ -22,7 +22,20 @@
       "Bash(npx tsc:*)",
       "Bash(ls:*)",
       "Bash(npm list:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright:*)",
+      "mcp__claude_ai_Cloudflare_Developer_Platform__accounts_list",
+      "Read(//Users/kumamon/.cache/**)",
+      "Read(//Users/kumamon/Library/Caches/ms-playwright/**)",
+      "Bash(CF_API_TOKEN='' CLOUDFLARE_API_TOKEN='' wrangler whoami 2>&1)",
+      "Bash(CF_API_TOKEN='' CLOUDFLARE_API_TOKEN='' wrangler pages deploy .vercel/output/static --project-name statuspage 2>&1)",
+      "Bash(CF_API_TOKEN='' CLOUDFLARE_API_TOKEN='' wrangler pages deploy .vercel/output/static --project-name statuspage --account-id 9124272a5c3e327f2e943bf27c0910c4 2>&1)",
+      "mcp__claude_ai_Cloudflare_Developer_Platform__r2_buckets_list",
+      "Bash(open -a \"Google Chrome\")",
+      "Bash(open -a \"Safari\")",
+      "WebFetch(domain:status.sagelga.com)",
+      "WebFetch(domain:64c7a451.statuspage-bej.pages.dev)"
     ]
   }
 }

@@ -1,43 +1,38 @@
-# CLAUDE.md
+# ByteSide Status Page — Claude Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Design Context
 
-## Commands
+### Users
+Thai tech and gaming enthusiasts who visit ByteSide.one for news. They come to the status page when something feels off — they want a quick, honest answer about service health. Context: often on mobile, may be mid-frustration, need immediate clarity without jargon.
 
-```bash
-npm run dev     # Start local dev server on port 8788 (wrangler dev)
-npm run deploy  # Deploy to Cloudflare Workers
-npm run tail    # Stream live logs from the deployed worker
-```
+### Brand Personality
+**Playful, Approachable, Fresh**
 
-No test runner or linter is configured. Wrangler compiles TypeScript directly — there is no separate `tsc` build step.
+ByteSide is a Thai-native tech and gaming brand with personality. The status page should feel like a friendly, transparent extension of that brand — not a cold enterprise dashboard. Tone: honest, warm, never corporate or stiff.
 
-## Architecture
+### Aesthetic Direction
+- **Visual tone**: Light, modern cards with the signature ByteSide purple (`#52006A`) as an accent — not dominant. Status colors (green/amber/red) do the heavy lifting.
+- **Feel**: Approachable and fresh — subtle personality without being distracting when users are checking for problems.
+- **Theme**: Light and dark mode both polished; system preference detection already in place.
+- **Anti-reference**: Avoid cold enterprise aesthetics. Avoid over-engineering animations or making it feel like a SaaS product dashboard.
 
-Everything lives in a single file: `src/index.ts`. There are two public routes:
+### Typography
+- **Body/UI**: IBM Plex Sans Thai — must remain crisp and legible for Thai script at all sizes
+- **Code/Metrics**: JetBrains Mono for response times and technical values
+- Thai script legibility is a primary accessibility concern; never sacrifice font size or weight for density
 
-- `GET /` — returns the full HTML status page (built by `buildHtml()`)
-- `GET /api/status` — probes all services in parallel and returns a JSON `StatusResponse`
+### Accessibility Requirements
+- **WCAG AA** contrast (4.5:1 minimum) — especially critical for status badge text on colored backgrounds
+- **Thai font clarity** — sufficient size (min 14px body), comfortable line-height (1.6)
 
-### Request flow
+### Design Principles
 
-1. `fetch()` handler dispatches on `url.pathname`.
-2. For `/api/status`: `handleApiStatus()` calls `Promise.all(SERVICES.map(probeService))`, then returns JSON with an overall status derived from the worst individual result.
-3. For `/`: `buildHtml()` returns a self-contained HTML string. The page has **no server-side data** — it fetches `/api/status` client-side on load and auto-refreshes every 60 seconds.
+1. **Honest at a glance** — Status must be immediately obvious without reading. Color + icon + label, never ambiguous.
 
-### Service probing logic (`probeService`)
+2. **Fresh but functional** — Personality lives in brand touches (purple accent, warm card radius, smooth micro-animations). Data is always the hero.
 
-Uses `HEAD` requests with a 5 s `AbortController` timeout. Classification thresholds:
-- Response time > `DEGRADED_THRESHOLD_MS` (1500 ms) → `degraded`
-- Non-2xx/3xx status code or timeout/network error → `down`
-- Otherwise → `operational`
+3. **Thai-first** — Typography and spacing validated for Thai script. IBM Plex Sans Thai should shine.
 
-### Adding or changing monitored services
+4. **Calm by default, urgent when needed** — Reassuring when green; visually escalates when degraded or down.
 
-Edit the `SERVICES` array near the top of `src/index.ts`. Each entry needs `id`, `name`, `icon` (emoji), and `url`.
-
-### HTML page design
-
-`buildHtml()` returns a fully inline page (CSS + JS in `<style>`/`<script>` tags, no external assets except Google Fonts and the ByteSide logo image from `https://byteside.one`). The embedded JS uses `var`/function-style (no `const`/`let`) to keep it compatible with the template literal context. Thai UI strings inside the embedded `<script>` are written as Unicode escapes to avoid encoding issues in the TypeScript template literal.
-
-The page matches ByteSide.one's branding: brand color `#52006A`, IBM Plex Sans Thai font, 2-row sticky navbar (row 1: logo + breadcrumb, row 2: category nav links back to `byteside.one`), and a dark footer.
+5. **Light touch on animation** — Every animation communicates state, never decorates.

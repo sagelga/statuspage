@@ -26,5 +26,5 @@ export interface HistoryMeta {
 }
 
 export interface Env {
-  STATUS_HISTORY?: KVNamespace;
+  STATUS_HISTORY?: unknown;
 }
