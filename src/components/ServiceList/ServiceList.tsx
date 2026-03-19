@@ -164,16 +164,20 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
   };
 
   const renderMosaicHalf = (localMinutes: (ServiceStatus | 'nodata')[], startHour: number, loading: boolean) => {
-    const cells = localMinutes.slice(startHour * 60, (startHour + 12) * 60);
-    // Axis labels: minute marks at 0, 15, 30, 45 minutes within each hour
-    const axisMinutes = ['00m', '15m', '30m', '45m'];
+    // Axis labels: minute marks at positions 0, 15, 30, 45 within each hour.
+    // Each hour is rotated so :01 is first and :00 is last.
+    const axisMinutes = ['15m', '30m', '45m', '60m'];
     return (
       <>
         <div className={`mosaic-half-grid${loading ? ' mosaic-loading' : ''}`}>
-          {cells.map((m, i) => {
-            const absMinute = startHour * 60 + i;
-            const hh = String(Math.floor(absMinute / 60)).padStart(2, '0');
-            const mm = String(absMinute % 60).padStart(2, '0');
+          {Array.from({ length: 12 * 60 }, (_, i) => {
+            const hourOffset = Math.floor(i / 60);
+            const posInHour = i % 60;
+            // Each hour row: :01 first, next hour's :00 last
+            const srcIdx = (startHour + hourOffset) * 60 + posInHour + 1;
+            const m = (srcIdx < 1440 ? localMinutes[srcIdx] : undefined) ?? 'nodata';
+            const hh = String(Math.floor(srcIdx / 60) % 24).padStart(2, '0');
+            const mm = String(srcIdx % 60).padStart(2, '0');
             return <div key={i} className={`mosaic-cell ${m}`} title={`${hh}:${mm}`} />;
           })}
         </div>

@@ -246,10 +246,10 @@
   top: 2px;
   opacity: 0.7;
 }
-.ma-s  { left: 0; }              /* 00 minutes */
-.ma-q1 { left: 25%;  transform: translateX(-50%); }  /* 15 minutes */
-.ma-h  { left: 50%;  transform: translateX(-50%); }  /* 30 minutes */
-.ma-q3 { left: 75%;  transform: translateX(-50%); }  /* 45 minutes */
+.ma-s  { left: 25%;  transform: translateX(-50%); }  /* 15 minutes */
+.ma-q1 { left: 50%;  transform: translateX(-50%); }  /* 30 minutes */
+.ma-h  { left: 75%;  transform: translateX(-50%); }  /* 45 minutes */
+.ma-q3 { right: 0; }                                  /* 60 minutes */
 
 /* Caption hint */
 .mosaic-caption {
