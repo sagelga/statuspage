@@ -3,7 +3,13 @@ export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { SERVICES } from '@/config';
+import type { ServiceDefinition } from '@/types';
 import { StatusResponse, ServiceStatus } from '@/types';
+
+interface ServicesConfig {
+  services: ServiceDefinition[];
+  updatedAt: string;
+}
 
 function getLast30Dates(): string[] {
   const dates: string[] = [];
@@ -100,9 +106,34 @@ function calculateOverallStatus(statuses: ServiceStatus[]): ServiceStatus {
 export async function GET() {
   const now = new Date();
   try {
+    // Read services config from KV (written by pulse worker)
+    const configRaw = await fetchFromKV('config:services');
+
+    if (!configRaw) {
+      // KV unavailable - return error so frontend shows error state
+      console.error('[API] KV config unavailable - pulse worker may not be running');
+      return NextResponse.json({ 
+        error: 'Configuration unavailable', 
+        message: 'KV config:services not found. Ensure statuspage-pulse worker is deployed and running.' 
+      }, { status: 503 });
+    }
+
+    let services: ServiceDefinition[];
+    try {
+      const config: ServicesConfig = JSON.parse(configRaw);
+      services = config.services;
+      console.log(`[API] Using ${services.length} services from KV config (updated: ${config.updatedAt})`);
+    } catch (e) {
+      console.error('[API] Failed to parse config from KV:', e);
+      return NextResponse.json({ 
+        error: 'Configuration parse error', 
+        message: 'Failed to parse config:services from KV.' 
+      }, { status: 500 });
+    }
+
     const history: Record<string, (ServiceStatus | 'nodata')[]> = {};
     const currentStatuses = await Promise.all(
-      SERVICES.map(async (svc) => {
+      services.map(async (svc) => {
         const [currentStatus, dailyHistory] = await Promise.all([
           getCurrentStatus(svc.id),
           readDailyHistory(svc.id),

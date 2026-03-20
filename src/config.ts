@@ -34,22 +34,28 @@ export const BRANDS: BrandMeta[] = [
   },
 ];
 
+// Services are defined in statuspage-pulse worker and written to KV.
+// This local config is only used for UI display (brand filtering), not for status checking.
+// To change services: update statuspage-pulse/src/config.ts and deploy the worker.
 export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = {
   byteside: [
-    { id: 'cloudflare',  name: 'เครือข่าย Cloudflare',    icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json',
-      jsonStatus: { path: 'status.indicator', map: { none: 'operational', minor: 'degraded', major: 'down', critical: 'down' } } },
+    // Services loaded from KV config:services (pulse worker)
+    // These entries match the pulse config for display purposes only
+    { id: 'cloudflare',  name: 'เครือข่าย Cloudflare',    icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json' },
     { id: 'website',     name: 'เว็บไซต์',                icon: 'globe',      url: 'https://beta.byteside.one' },
     { id: 'r2-content',  name: 'โฮสต์รูปภาพและวิดีโอ',    icon: 'image',      url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
     { id: 'notion-sync', name: 'ระบบดึงข้อมูลจาก Notion', icon: 'refresh-cw', url: 'https://fetcher.byteside.one/api/health' },
     { id: 'notion',      name: 'ฐานข้อมูล Notion',        icon: 'database',   url: 'https://www.notion.so/' },
   ],
   sagelga: [
+    // Services loaded from KV config:services (pulse worker)
+    // These entries match the pulse config for display purposes only
     { id: 'sagelga-super',      name: 'sagelga.com',          icon: 'globe',      url: 'https://sagelga.com' },
-    { id: 'sagelga-mahjong',    name: 'Mahjong Hands',        icon: 'grid',       url: 'https://mahjong-hands.sagelga.com' },
-    { id: 'sagelga-telegram',   name: 'Telegram Thai',        icon: 'message',    url: 'https://telegram-thai.sagelga.com' },
+    { id: 'sagelga-mahjong',    name: 'Mahjong Hands',        icon: 'grid',       url: 'https://mahjong.sagelga.com' },
+    { id: 'sagelga-telegram',   name: 'Telegram Thai',        icon: 'message',    url: 'https://telegram.sagelga.com' },
     { id: 'sagelga-docs',       name: 'Documentation',        icon: 'book',       url: 'https://docs.sagelga.com' },
-    { id: 'sagelga-redirect',   name: 'Redirect',             icon: 'arrow-right', url: 'https://redirect.sagelga.com' },
-    { id: 'sagelga-static',     name: 'Static',               icon: 'image',      url: 'https://static.sagelga.com' },
+    { id: 'sagelga-redirect',   name: 'Redirect',             icon: 'arrow-right', url: 'https://l.sagelga.com' },
+    { id: 'sagelga-static',     name: 'Static',               icon: 'image',      url: 'https://static.sagelga.com/statuspulse.webp' },
     { id: 'sagelga-learn',      name: 'Learn',                icon: 'book-open',  url: 'https://learn.sagelga.com' },
   ],
 };
