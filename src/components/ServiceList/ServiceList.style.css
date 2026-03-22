@@ -54,7 +54,7 @@
 }
 :root.sagelga-brand .info-btn:hover,
 :root.sagelga-brand .info-btn.open {
-  border-color: #C9943A; color: #C9943A; background: rgba(201,148,58,0.1);
+  border-color: var(--accent); color: var(--accent); background: rgba(201,148,58,0.1); /* var(--accent) at 10% */
 }
 .info-tooltip {
   position: absolute;
@@ -76,7 +76,7 @@
   font-family: var(--font-mono); font-size: 0.72rem;
   color: var(--brand) !important; word-break: break-all; line-height: 1.4;
 }
-:root.sagelga-brand .info-tooltip-url { color: #C9943A !important; }
+:root.sagelga-brand .info-tooltip-url { color: var(--accent) !important; }
 @media (max-width: 640px) {
   .info-tooltip {
     min-width: 180px;

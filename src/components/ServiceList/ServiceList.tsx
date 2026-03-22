@@ -191,20 +191,12 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
     );
   };
 
-  const overallStatus = services
-    ? (services.every(s => s.status === 'operational') ? 'operational'
-      : services.some(s => s.status === 'down') ? 'down'
-      : 'degraded')
-    : null;
 
   return (
     <div className="section">
       <div className="section-header">
         <div className="section-title-row">
           <h2 className="section-title">บริการ</h2>
-          {overallStatus === 'operational' && (
-            <span className="badge operational">ระบบทำงานปกติ</span>
-          )}
         </div>
         <RefreshTimer lastUpdated={checkedAt} refreshInterval={60} onRefresh={onRefresh} />
       </div>

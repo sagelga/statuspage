@@ -19,8 +19,44 @@
 .footer-author { color: #c084fc !important; text-decoration: none !important; transition: color 0.15s ease; }
 .footer-author:hover { color: #e9d5ff !important; }
 .footer-theme-toggle { display: flex; align-items: center; gap: 0.5rem; color: #6b7280; }
-.footer-toggle-btn { background: #1f1f1f; border: 1px solid #333; border-radius: 20px; padding: 0.3rem 0.75rem; cursor: pointer; color: #9ca3af; font-size: 0.78rem; font-family: var(--font-th); transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 0.35rem; }
-.footer-toggle-btn:hover { border-color: #52006a; color: #ffffff; }
+
+/* iOS-style switch */
+.theme-switch { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; }
+.theme-switch-track {
+  display: block; position: relative;
+  width: 40px; height: 23px; border-radius: 99px;
+  background: #3f3f3f;
+  transition: background 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.theme-switch--on .theme-switch-track { background: #7c3aed; }
+.theme-switch-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 19px; height: 19px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.theme-switch--on .theme-switch-thumb { transform: translateX(17px); }
+.theme-switch:active .theme-switch-thumb { width: 22px; }
+.theme-switch--on:active .theme-switch-thumb { transform: translateX(14px); width: 22px; }
+
+/* Heart pulse on hover */
+.footer-heart { animation: heartbeat 2.5s ease-in-out infinite; animation-play-state: paused; }
+.footer-theme-toggle:hover .footer-heart { animation-play-state: running; }
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15%       { transform: scale(1.35); }
+  30%       { transform: scale(1); }
+  45%       { transform: scale(1.2); }
+  60%       { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch-track, .theme-switch-thumb { transition: none; }
+  .footer-heart { animation: none; }
+}
 
 @media (max-width: 900px) {
   .footer-top { flex-direction: column; gap: 2rem; }

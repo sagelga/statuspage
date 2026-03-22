@@ -6,11 +6,6 @@ export const DEGRADED_THRESHOLD_MS = 1500;
 export const SITE_CONFIG = {
   name:         'ByteSide.one',
   url:          'https://status.sagelga.com',
-  brandColor:   '#52006A',
-  brandDark:    '#3d004f',
-  tagline:      'เว็บไซต์ข่าวเทคโนโลยีและเกมมิ่ง สำหรับคนไทยที่รักเทคโนโลยี รีวิว ทิปส์ และบทความเชิงลึกที่คุณไว้วางใจได้',
-  email:        'support@byteside.one',
-  facebook:     'https://facebook.com/byteside',
 };
 
 export type BrandId = 'byteside' | 'sagelga';
@@ -25,12 +20,12 @@ export const BRANDS: BrandMeta[] = [
   {
     id: 'byteside',
     label: 'ByteSide.one',
-    description: 'ครอบคลุมเว็บไซต์ เครือข่าย CDN ระบบโฮสต์มีเดีย และฐานข้อมูล — อัปเดตทุก 60 วินาที',
+    description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์ มีเดีย และฐานข้อมูลของเว็บไซต์ในเครือ ByteSide.one',
   },
   {
     id: 'sagelga',
     label: 'sagelga.com',
-    description: 'ครอบคลุมเว็บไซต์และบริการของ sagelga — อัปเดตทุก 60 วินาที',
+    description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์และบริการในเครือ sagelga',
   },
 ];
 

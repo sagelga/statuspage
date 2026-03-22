@@ -18,7 +18,10 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              color 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.1s ease,
+              box-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   white-space: nowrap;
 }
 
@@ -27,9 +30,19 @@
   color: var(--text);
 }
 
+.brand-toggle-btn:active {
+  transform: scale(0.94);
+}
+
 .brand-toggle-btn.active {
   background: var(--brand);
   color: #fff;
+  box-shadow: 0 1px 6px rgba(82, 0, 106, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-toggle-btn { transition: background 0.01ms, color 0.01ms; }
+  .brand-toggle-btn:active { transform: none; }
 }
 
 :root.dark-theme .brand-toggle-btn.active {

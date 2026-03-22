@@ -1,5 +1,7 @@
 import React from 'react';
-import { SITE_CONFIG, BrandId, BRANDS } from '@/config';
+import Image from 'next/image';
+import { SITE_CONFIG, BrandId } from '@/config';
+import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
 import './Navbar.style.css';
 
 interface NavbarProps {
@@ -7,69 +9,59 @@ interface NavbarProps {
   onBrandChange: (brand: BrandId) => void;
 }
 
-const BrandPill: React.FC<{ brand: BrandId; onBrandChange: (b: BrandId) => void }> = ({ brand, onBrandChange }) => (
-  <div className="nav-brand-pill" role="tablist" aria-label="เลือกแบรนด์">
-    {BRANDS.map(b => (
-      <button
-        key={b.id}
-        role="tab"
-        aria-selected={brand === b.id}
-        className={`nav-brand-btn${brand === b.id ? ' active' : ''}`}
-        onClick={() => onBrandChange(b.id)}
-      >
-        {b.label}
-      </button>
-    ))}
-  </div>
-);
+interface NavLink { label: string; url: string }
+
+const NAV_CONFIG: Record<BrandId, {
+  logo: React.ReactNode;
+  links: NavLink[];
+}> = {
+  sagelga: {
+    logo: <a href="https://sagelga.com" className="nav-logo nav-logo-text">sagelga</a>,
+    links: [
+      { label: 'sagelga', url: 'https://sagelga.com' },
+      { label: 'Mahjong Hands', url: 'https://mahjong-hands.sagelga.com' },
+      { label: 'Telegram Thai', url: 'https://telegram-thai.sagelga.com' },
+      { label: 'Documentation', url: 'https://docs.sagelga.com' },
+      { label: 'Learn', url: 'https://learn.sagelga.com' },
+    ],
+  },
+  byteside: {
+    logo: (
+      <a href="https://beta.byteside.one" className="nav-logo">
+        <Image src="/img/logo-text-white.png" alt={SITE_CONFIG.name} className="nav-logo-img" width={120} height={28} />
+      </a>
+    ),
+    links: [
+      { label: 'เกมมิ่ง', url: 'https://beta.byteside.one/blog/tags/gaming' },
+      { label: 'เทคโนโลยี', url: 'https://beta.byteside.one/blog/tags/tech-news' },
+      { label: 'รีวิว', url: 'https://beta.byteside.one/blog/tags/reviews' },
+      { label: 'คริปโต', url: 'https://beta.byteside.one/blog/tags/crypto' },
+      { label: 'บล็อก', url: 'https://beta.byteside.one/blog' },
+    ],
+  },
+};
 
 export const Navbar: React.FC<NavbarProps> = ({ brand, onBrandChange }) => {
-  if (brand === 'sagelga') {
-    return (
-      <nav className="navbar">
-        <div className="nav-top">
-          <div className="nav-top-inner">
-            <a href="https://sagelga.com" className="nav-logo nav-logo-text">sagelga</a>
-            <div className="nav-top-right">
-              <BrandPill brand={brand} onBrandChange={onBrandChange} />
-            </div>
-          </div>
-        </div>
-        <div className="nav-bottom">
-          <div className="nav-bottom-inner">
-            <ul className="nav-list" id="nav-tabs">
-              <li><a href="https://sagelga.com" className="nav-link">หน้าหลัก</a></li>
-              <li><a href="https://mahjong-hands.sagelga.com" className="nav-link">Mahjong Hands</a></li>
-              <li><a href="https://telegram-thai.sagelga.com" className="nav-link">Telegram Thai</a></li>
-              <li><a href="https://docs.sagelga.com" className="nav-link">Docs</a></li>
-              <li><a href="https://learn.sagelga.com" className="nav-link">Learn</a></li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-    );
-  }
+  const config = NAV_CONFIG[brand];
 
   return (
     <nav className="navbar">
       <div className="nav-top">
         <div className="nav-top-inner">
-          <a href="https://beta.byteside.one" className="nav-logo">
-            <img src="/img/logo-text-white.png" alt={SITE_CONFIG.name} className="nav-logo-img" />
-          </a>
+          {config.logo}
           <div className="nav-top-right">
-            <BrandPill brand={brand} onBrandChange={onBrandChange} />
+            <BrandToggle active={brand} onChange={onBrandChange} className="nav-brand-pill" />
           </div>
         </div>
       </div>
       <div className="nav-bottom">
         <div className="nav-bottom-inner">
           <ul className="nav-list" id="nav-tabs">
-            <li><a href="https://beta.byteside.one/blog/tags/gaming" className="nav-link">เกมมิ่ง</a></li>
-            <li><a href="https://beta.byteside.one/blog/tags/tech-news" className="nav-link">เทคโนโลยี</a></li>
-            <li><a href="https://beta.byteside.one/blog/tags/reviews" className="nav-link">รีวิว</a></li>
-            <li><a href="https://beta.byteside.one/blog/tags/crypto" className="nav-link">คริปโต</a></li>
-            <li><a href="https://beta.byteside.one/blog" className="nav-link">บล็อก</a></li>
+            {config.links.map((link) => (
+              <li key={link.url}>
+                <a href={link.url} className="nav-link">{link.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
       </div>

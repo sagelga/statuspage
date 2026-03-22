@@ -13,16 +13,16 @@
   --brand-dark: #3d004f;
   --font-th: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
-  
+
   /* Status colors */
-  --ok: #16a34a; --ok-bg: #dcfce7; --ok-text: #166534;
-  --warn: #ca8a04; --warn-bg: #fef9c3; --warn-text: #854d0e;
-  --err: #dc2626; --err-bg: #fee2e2; --err-text: #991b1b;
-  --gray: #6b7280; --gray-bg: #f3f4f6;
-  
+  --ok: #16a34a;        --ok-bg: #dcfce7;         --ok-text: #166534;
+  --warn: #ca8a04;      --warn-bg: #fef9c3;       --warn-text: #854d0e;
+  --err: #dc2626;       --err-bg: #fee2e2;        --err-text: #991b1b;
+  --gray: #6b7280;      --gray-bg: #f3f4f6;
+
   /* Light theme */
-  --card-bg: #fdfcff; --card-border: #e9e4f0;
-  --page-bg: #f5f3f8; --text: #111827; --text-muted: #6b7280;
+  --card-bg: #fdfcff;   --card-border: #e9e4f0;
+  --page-bg: #f5f3f8;   --text: #111827;          --text-muted: #6b7280;
 
   /* Easing */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -32,12 +32,14 @@
 :root.dark-theme {
   --card-bg: #130d1c; --card-border: #2a1f35;
   --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
+  --brand-light: var(--brand-light);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light-theme) {
     --card-bg: #130d1c; --card-border: #2a1f35;
     --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
+    --brand-light: var(--brand-light);
   }
 }
 
@@ -65,9 +67,9 @@ a:hover { color: var(--brand-dark); }
   color: var(--text-muted);
   line-height: 1.7;
 }
-:root.dark-theme .about-blurb { border-left-color: #c084fc; }
+:root.dark-theme .about-blurb { border-left-color: var(--brand-light); }
 @media (prefers-color-scheme: dark) {
-  :root:not(.light-theme) .about-blurb { border-left-color: #c084fc; }
+  :root:not(.light-theme) .about-blurb { border-left-color: var(--brand-light); }
 }
 
 /* ----- Keyframes ----- */
@@ -171,9 +173,9 @@ a:hover { color: var(--brand-dark); }
   border-top: 2px solid var(--brand);
   display: inline-block;
 }
-:root.dark-theme .section-title { color: #c084fc; border-top-color: #c084fc; }
+:root.dark-theme .section-title { color: var(--brand-light); border-top-color: var(--brand-light); }
 @media (prefers-color-scheme: dark) {
-  :root:not(.light-theme) .section-title { color: #c084fc; border-top-color: #c084fc; }
+  :root:not(.light-theme) .section-title { color: var(--brand-light); border-top-color: var(--brand-light); }
 }
 
 /* Utilities */
@@ -193,21 +195,23 @@ a:hover { color: var(--brand-dark); }
   outline-offset: 2px;
   border-radius: 3px;
 }
-:root.dark-theme :focus-visible { outline-color: #c084fc; }
-@media (prefers-color-scheme: dark) { :root:not(.light-theme) :focus-visible { outline-color: #c084fc; } }
+:root.dark-theme :focus-visible { outline-color: var(--brand-light); }
+@media (prefers-color-scheme: dark) { :root:not(.light-theme) :focus-visible { outline-color: var(--brand-light); } }
 
 .spin { animation: spin 1s linear infinite; transform-origin: center; }
 
 /* ─── sagelga brand theme ─────────────────────────────────────────
-   Warm palette: navy brand (#3B4A8C) + amber accent (#C9943A).
+   Warm palette: navy brand (#3B4A8C) + amber accent (var(--accent)).
    Light mode: warm parchment. Dark mode: warm dark.
    Placed last so equal-specificity rules win via source order.
    ────────────────────────────────────────────────────────────────── */
 
 /* Brand vars — constant across light/dark */
 :root.sagelga-brand {
-  --brand:      #3B4A8C;
-  --brand-dark: #2d3a6e;
+  --brand:        #3B4A8C;
+  --brand-dark:   #2d3a6e;
+  --accent:       var(--accent);
+  --accent-dark:  var(--accent-dark);
 }
 
 /* sagelga light palette */
@@ -249,11 +253,11 @@ a:hover { color: var(--brand-dark); }
 }
 
 /* Links */
-:root.sagelga-brand a                        { color: #C9943A; }
-:root.sagelga-brand a:hover                  { color: #d9a84a; }
+:root.sagelga-brand a                        { color: var(--accent); }
+:root.sagelga-brand a:hover                  { color: var(--accent-dark); }
 
 /* Navbar — always navy regardless of light/dark */
-:root.sagelga-brand .navbar                  { background: #3B4A8C; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+:root.sagelga-brand .navbar                  { background: var(--brand); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 :root.sagelga-brand .nav-top                 { border-bottom-color: rgba(255,255,255,0.15); }
 :root.sagelga-brand .nav-bottom              { background: rgba(0,0,0,0.15); }
 
@@ -262,28 +266,29 @@ a:hover { color: var(--brand-dark); }
 :root.sagelga-brand .footer-divider          { border-top-color: var(--card-border); }
 :root.sagelga-brand .footer-col-title        { color: var(--text); }
 :root.sagelga-brand .footer-col a            { color: var(--text-muted) !important; }
-:root.sagelga-brand .footer-col a:hover      { color: #C9943A !important; }
+:root.sagelga-brand .footer-col a:hover      { color: var(--accent) !important; }
 :root.sagelga-brand .footer-bottom           { color: var(--text-muted); border-top-color: var(--card-border); }
 :root.sagelga-brand .footer-logo-text        { color: var(--text); }
 :root.sagelga-brand .footer-tagline          { color: var(--text-muted); }
 :root.sagelga-brand .footer-toggle-btn       { background: var(--card-bg); border-color: var(--card-border); color: var(--text-muted); }
-:root.sagelga-brand .footer-toggle-btn:hover { border-color: #C9943A; color: var(--text); }
+:root.sagelga-brand .footer-toggle-btn:hover { border-color: var(--accent); color: var(--text); }
 :root.sagelga-brand .footer-theme-toggle     { color: var(--text-muted); }
-:root.sagelga-brand .footer-author           { color: #C9943A !important; }
-:root.sagelga-brand .footer-author:hover     { color: #d9a84a !important; }
+:root.sagelga-brand .theme-switch--on .theme-switch-track { background: var(--brand); }
+:root.sagelga-brand .footer-author           { color: var(--accent) !important; }
+:root.sagelga-brand .footer-author:hover     { color: var(--accent-dark) !important; }
 
 /* Cards — use vars */
 :root.sagelga-brand .api-card,
 :root.sagelga-brand .incident-card           { background: var(--card-bg); border-color: var(--card-border); }
 
 /* Section title — accent becomes amber */
-:root.sagelga-brand .section-title           { color: #C9943A; border-top-color: #C9943A; }
+:root.sagelga-brand .section-title           { color: var(--accent); border-top-color: var(--accent); }
 
 /* About blurb border */
-:root.sagelga-brand .about-blurb             { border-left-color: #C9943A; }
+:root.sagelga-brand .about-blurb             { border-left-color: var(--accent); }
 
 /* Focus ring */
-:root.sagelga-brand :focus-visible           { outline-color: #C9943A; }
+:root.sagelga-brand :focus-visible           { outline-color: var(--accent); }
 
 /* Skeleton shimmer — light uses warm gray, dark uses warm white */
 :root.sagelga-brand .sk                      { background: rgba(100, 92, 75, 0.1); }
@@ -320,5 +325,5 @@ a:hover { color: var(--brand-dark); }
 }
 
 /* Brand toggle */
-:root.sagelga-brand .brand-toggle-btn.active             { background: #3B4A8C; color: #F0EAD6; }
+:root.sagelga-brand .brand-toggle-btn.active             { background: var(--brand); color: var(--text); }
 :root.sagelga-brand .brand-toggle-btn:hover:not(.active) { background: rgba(59,74,140,0.08); color: var(--text); }
