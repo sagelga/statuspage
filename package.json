@@ -11,7 +11,7 @@
     "deploy": "npm run pages:build && CLOUDFLARE_ACCOUNT_ID=9124272a5c3e327f2e943bf27c0910c4 npx wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
-    "next": "16.1.6",
+    "next": "16.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -24,9 +24,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.76.0"
+  },
+  "overrides": {
+    "flatted": ">=3.4.2",
+    "esbuild": ">=0.25.0",
+    "undici": ">=6.24.0",
+    "cookie": ">=0.7.0"
   }
 }
