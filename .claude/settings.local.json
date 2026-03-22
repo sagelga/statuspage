@@ -35,7 +35,9 @@
       "Bash(open -a \"Google Chrome\")",
       "Bash(open -a \"Safari\")",
       "WebFetch(domain:status.sagelga.com)",
-      "WebFetch(domain:64c7a451.statuspage-bej.pages.dev)"
+      "WebFetch(domain:64c7a451.statuspage-bej.pages.dev)",
+      "mcp__claude_ai_Notion__notion-update-page",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

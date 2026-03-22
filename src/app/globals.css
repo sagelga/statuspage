@@ -325,5 +325,7 @@ a:hover { color: var(--brand-dark); }
 }
 
 /* Brand toggle */
-:root.sagelga-brand .brand-toggle-btn.active             { background: var(--brand); color: var(--text); }
+:root.sagelga-brand .brand-toggle-btn.active,
+:root.sagelga-brand.dark-theme .brand-toggle-btn.active,
+:root.sagelga-brand:not(.light-theme) .brand-toggle-btn.active { background: var(--brand); color: #fff; box-shadow: 0 1px 6px rgba(59, 74, 140, 0.4); }
 :root.sagelga-brand .brand-toggle-btn:hover:not(.active) { background: rgba(59,74,140,0.08); color: var(--text); }
