@@ -85,9 +85,12 @@ async function getCurrentStatus(serviceId: string): Promise<ServiceStatus> {
     const todayMinutes = parsed[date];
     if (!todayMinutes) return 'operational';
 
-    const minuteIndex = now.getUTCHours() * 60 + now.getUTCMinutes();
-    for (let i = minuteIndex; i >= 0; i--) {
-      const key = String(i).padStart(4, '0');
+    // Calculate 1-based minute slot (0001-1440)
+    // Hours * 60 + minutes gives us 0-1439; add 1 to get 1-1440
+    const minuteSlot = now.getUTCHours() * 60 + now.getUTCMinutes() + 1;
+    // Search backwards from current slot to find the most recent non-nodata status
+    for (let slot = minuteSlot; slot >= 1; slot--) {
+      const key = String(slot).padStart(4, '0');
       const status = todayMinutes[key];
       if (status && status !== 'nodata') return status as ServiceStatus;
     }

@@ -29,10 +29,13 @@ export async function GET(
     if (!todayMinutes) {
       return NextResponse.json(new Array(1440).fill('nodata'));
     }
-    // Expand "HHMM"-keyed object to 1440-element array
+    // Expand "slot"-keyed object (1-based: 0001-1440) to 0-based 1440-element array
+    // Convert 1-based slot numbers to 0-based array indices
     const minutes = new Array(1440).fill('nodata');
     for (const [k, v] of Object.entries(todayMinutes)) {
-      const i = parseInt(k, 10);
+      const slot = parseInt(k, 10);
+      // slot 0001 → array index 0, slot 1440 → array index 1439
+      const i = slot - 1;
       if (i >= 0 && i < 1440) minutes[i] = v;
     }
     return NextResponse.json(minutes, {
