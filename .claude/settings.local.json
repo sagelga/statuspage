@@ -37,7 +37,13 @@
       "WebFetch(domain:status.sagelga.com)",
       "WebFetch(domain:64c7a451.statuspage-bej.pages.dev)",
       "mcp__claude_ai_Notion__notion-update-page",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh api:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm view:*)",
+      "Bash(npm audit:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
