@@ -152,7 +152,6 @@ export default function Home() {
         brandName="ByteSide.one"
         brandHref="https://beta.byteside.one"
         tagline="ตรวจสอบสถานะระบบ ByteSide.one แบบเรียลไทม์"
-        domain="status.byteside.one"
         columns={FOOTER_COLUMNS}
         author="sagelga"
         authorHref="https://sagelga.com"
