@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import favicon from "./favicon.png";
+import { ThemeProvider } from "@/hooks/useTheme";
+import CookieConsentBanner from "@/components/cookies/CookieConsentBanner";
 
 const BASE_URL = 'https://status.byteside.one';
 
@@ -67,8 +69,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const stored = localStorage.getItem('theme-preference');
+                const theme = stored || 'system';
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = theme === 'system' ? systemDark : theme === 'dark';
+                const html = document.documentElement;
+                if (isDark) {
+                  html.setAttribute('data-theme', 'dark');
+                } else {
+                  html.setAttribute('data-theme', 'light');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
-        {children}
+        <ThemeProvider>
+          {children}
+          <CookieConsentBanner />
+        </ThemeProvider>
       </body>
     </html>
   );

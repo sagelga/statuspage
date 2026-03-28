@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Navbar } from '@/components/Navbar/Navbar';
-import { Footer } from '@/components/Footer/Footer';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 import { Hero } from '@/components/Hero/Hero';
 import { ServiceList } from '@/components/ServiceList/ServiceList';
 import { IncidentHistory } from '@/components/IncidentHistory/IncidentHistory';
 import { ApiSection } from '@/components/ApiSection/ApiSection';
-import { StatusResponse, ServiceStatus } from '@/types';
+import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
+import { StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
 
 const jsonLd = {
@@ -28,27 +29,36 @@ const jsonLd = {
   },
 };
 
+// Navigation links for Navbar
+const NAV_LINKS: NavItem[] = [
+  { label: 'Home', href: '/' },
+];
+
+// Footer columns
+const FOOTER_COLUMNS: FooterColumn[] = [
+  {
+    title: 'ByteSide.one',
+    links: [
+      { label: 'Blog', href: 'https://beta.byteside.one/blog', external: true },
+      { label: 'About', href: 'https://beta.byteside.one/about', external: true },
+      { label: 'Contact', href: 'https://beta.byteside.one/contact', external: true },
+    ],
+  },
+  {
+    title: 'Community',
+    links: [
+      { label: 'Facebook', href: 'https://facebook.com/byteside', external: true },
+      { label: 'Twitter', href: 'https://twitter.com/byteside', external: true },
+      { label: 'YouTube', href: 'https://youtube.com/byteside', external: true },
+    ],
+  },
+];
+
 export default function Home() {
   const [data, setData] = useState<StatusResponse | null>(null);
   const [error, setError] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [activeBrand, setActiveBrand] = useState<BrandId>('byteside');
   const [brandFading, setBrandFading] = useState(false);
-
-  useEffect(() => {
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDark(systemPrefersDark);
-  }, []);
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark-theme');
-      document.documentElement.classList.remove('light-theme');
-    } else {
-      document.documentElement.classList.add('light-theme');
-      document.documentElement.classList.remove('dark-theme');
-    }
-  }, [isDark]);
 
   useEffect(() => {
     if (activeBrand === 'sagelga') {
@@ -84,8 +94,6 @@ export default function Home() {
     loadStatus();
   }, [loadStatus]);
 
-  const toggleTheme = () => setIsDark(!isDark);
-
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
     const url = brand === 'byteside' ? window.location.pathname : `${window.location.pathname}?brand=${brand}`;
@@ -112,7 +120,13 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar brand={activeBrand} onBrandChange={handleBrandChange} />
+      <Navbar
+        brandName="status.byteside.one"
+        brandHref="/"
+        navbarBg="#0f172a"
+        links={NAV_LINKS}
+        controls={<BrandToggle active={activeBrand} onChange={handleBrandChange} className="nav-brand-pill" />}
+      />
       <div className={`page-wrap${brandFading ? ' brand-fade' : ''}`}>
         <Hero
           status={error ? ('down' as ServiceStatus) : data ? brandStatus : 'loading'}
@@ -134,7 +148,15 @@ export default function Home() {
         <IncidentHistory />
         <ApiSection />
       </div>
-      <Footer isDark={isDark} onToggleTheme={toggleTheme} brand={activeBrand} />
+      <Footer
+        brandName="ByteSide.one"
+        brandHref="https://beta.byteside.one"
+        tagline="ตรวจสอบสถานะระบบ ByteSide.one แบบเรียลไทม์"
+        domain="status.byteside.one"
+        columns={FOOTER_COLUMNS}
+        author="sagelga"
+        authorHref="https://sagelga.com"
+      />
     </main>
   );
 }
