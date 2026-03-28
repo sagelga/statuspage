@@ -51,6 +51,16 @@
   line-height: 1.65;
 }
 
+.footer-tagline-product {
+  color: #d1d5db;
+  font-weight: 500;
+}
+
+.footer-tagline-by {
+  color: #6b7280;
+  font-size: 0.82em;
+}
+
 .footer-columns {
   flex: 1;
   display: flex;

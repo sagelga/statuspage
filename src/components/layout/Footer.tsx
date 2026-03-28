@@ -40,7 +40,13 @@ export default function Footer({
             <Link href={brandHref} className="footer-logo-text">
               {brandName}
             </Link>
-            <p className="footer-tagline">{tagline}</p>
+            <p className="footer-tagline">
+              {(() => {
+                const byIdx = tagline.lastIndexOf(' by ');
+                if (byIdx === -1) return tagline;
+                return (<><span className="footer-tagline-product">{tagline.slice(0, byIdx)}</span>{' '}<span className="footer-tagline-by">by {tagline.slice(byIdx + 4)}</span></>);
+              })()}
+            </p>
           </div>
           <div className="footer-columns">
             {columns.map((col) => (
