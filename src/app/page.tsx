@@ -151,7 +151,7 @@ export default function Home() {
       <Footer
         brandName="ByteSide.one"
         brandHref="https://beta.byteside.one"
-        tagline="ตรวจสอบสถานะระบบ ByteSide.one แบบเรียลไทม์"
+        tagline="Status Page by sagelga"
         columns={FOOTER_COLUMNS}
         author="sagelga"
         authorHref="https://sagelga.com"
