@@ -123,7 +123,7 @@ export default function Home() {
       <Navbar
         brandName="status.byteside.one"
         brandHref="/"
-        navbarBg="#0f172a"
+        navbarBg="#52006A"
         links={NAV_LINKS}
         controls={<BrandToggle active={activeBrand} onChange={handleBrandChange} className="nav-brand-pill" />}
       />
