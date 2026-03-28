@@ -8,6 +8,31 @@
   margin-bottom: 1.75rem;
 }
 
+/* When inside the navbar controls slot */
+.nav-brand-pill {
+  margin-bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.18);
+  align-self: center;
+}
+
+.nav-brand-pill .brand-toggle-btn {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.nav-brand-pill .brand-toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.nav-brand-pill .brand-toggle-btn.active {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: none;
+}
+
 .brand-toggle-btn {
   padding: 0.35rem 1rem;
   border-radius: 99px;

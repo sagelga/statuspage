@@ -121,7 +121,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar
-        brandName="status.byteside.one"
+        brandName="ByteSide.one"
         brandHref="/"
         navbarBg="#52006A"
         links={NAV_LINKS}
