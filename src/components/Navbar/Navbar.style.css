@@ -19,7 +19,7 @@
 .nav-search-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: none; border: none; color: #fff; cursor: pointer; padding: 0; }
 
 .nav-bottom { background: rgba(0, 0, 0, 0.15); }
-.nav-bottom-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; }
+.nav-bottom-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; height: 40px; display: flex; align-items: center; }
 .nav-list { list-style: none; display: flex; align-items: center; gap: 0; margin: 0; padding: 0; height: 100%; }
 .nav-link { display: flex; align-items: center; padding: 0.6rem 1.1rem; color: rgba(255, 255, 255, 0.78) !important; font-size: 0.875rem; font-weight: 500; text-decoration: none !important; border-bottom: 2px solid transparent; transition: all 0.15s ease; white-space: nowrap; letter-spacing: 0.2px; }
 .nav-link:hover { color: #ffffff !important; border-bottom-color: rgba(255, 255, 255, 0.45); }
