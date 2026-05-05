@@ -19,6 +19,7 @@ export interface StatusResponse {
   checkedAt: string;
   services: ServiceResult[];
   history: Record<string, (ServiceStatus | 'nodata')[]>;
+  dailyUptime?: Record<string, (number | null)[]>;
 }
 
 export interface HistoryMeta {

@@ -79,7 +79,8 @@ export default function Home() {
 
   const loadStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/status');
+      const tz = -new Date().getTimezoneOffset();
+      const response = await fetch(`/api/status?tzOffset=${tz}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const json: StatusResponse = await response.json();
       setData(json);
@@ -142,6 +143,7 @@ export default function Home() {
           checkedAt={data?.checkedAt || new Date().toISOString()}
           services={brandServices}
           history={data?.history}
+          dailyUptime={data?.dailyUptime}
           onRefresh={loadStatus}
         />
 

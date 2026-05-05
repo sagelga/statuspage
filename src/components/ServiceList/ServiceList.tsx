@@ -9,6 +9,7 @@ interface ServiceListProps {
   checkedAt: string;
   services?: ServiceResult[];
   history?: Record<string, (ServiceStatus | 'nodata')[]>;
+  dailyUptime?: Record<string, (number | null)[]>;
   onRefresh?: () => void;
 }
 
@@ -25,7 +26,7 @@ interface ExpandedState {
 
 const SERVICE_URL_MAP = Object.fromEntries(SERVICES.map(s => [s.id, s.url]));
 
-export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, history, onRefresh }) => {
+export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, history, dailyUptime, onRefresh }) => {
   const [expanded, setExpanded] = useState<ExpandedState | null>(null);
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
   const minuteCache = useRef<Record<string, (ServiceStatus | 'nodata')[]>>({});
@@ -61,22 +62,17 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
     return `UTC${sign}${h}:${m}`;
   }, [tzOffsetMinutes]);
 
-  // Rotate a UTC-indexed 1440-minute array to local-time order
-  const toLocalMinutes = (utcArr: (ServiceStatus | 'nodata')[]) => {
-    if (tzOffsetMinutes === 0) return utcArr;
-    return Array.from({ length: 1440 }, (_, i) => {
-      const utcIdx = (i - tzOffsetMinutes + 1440) % 1440;
-      return utcArr[utcIdx];
-    });
-  };
-
   const DATE_ISO = React.useMemo(() => {
     const arr = [];
-    const today = Date.now();
+    const now = new Date();
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
+      const d = new Date(now);
       d.setDate(d.getDate() - i);
-      arr.push(d.toISOString().slice(0, 10));
+      // Use local date components (not UTC) so dates match the user's timezone
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      arr.push(`${yyyy}-${mm}-${dd}`);
     }
     return arr;
   }, []);
@@ -107,7 +103,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
     setExpanded({ serviceId: svcId, dayIndex, dateStr, label, minutes: new Array(1440).fill('nodata'), loading: true, locked });
 
     try {
-      const res = await fetch(`/api/minutes/${svcId}/${dateStr}`);
+      const tz = -new Date().getTimezoneOffset();
+      const res = await fetch(`/api/minutes/${svcId}/${dateStr}?tzOffset=${tz}`);
       if (!res.ok) throw new Error('Failed to fetch');
       const raw = await res.json();
       const data: (ServiceStatus | 'nodata')[] = Array.isArray(raw) ? raw : new Array(1440).fill('nodata');
@@ -264,11 +261,13 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
                         ? svcHistory[i]
                         : (i === 29) ? s.status
                         : 'nodata';
+                      const uptimePct = dailyUptime?.[s.id]?.[i] ?? null;
+                      const effectiveSt = (uptimePct !== null && uptimePct < 95) ? 'down' : st;
                       const isSelected = isExpanded && expanded?.dayIndex === i;
                       return (
                         <div
                           key={i}
-                          className={`uptime-bar ${st}${isSelected ? ' selected' : ''}`}
+                          className={`uptime-bar ${effectiveSt}${isSelected ? ' selected' : ''}`}
                           onMouseEnter={() => handleBarHover(s.id, i, DATE_ISO[i], DATE_STRS[i])}
                           onClick={() => handleBarClick(s.id, i, DATE_ISO[i], DATE_STRS[i])}
                           title={DATE_STRS[i]}
@@ -296,7 +295,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
                       </div>
 
                       {(() => {
-                        const localMins = toLocalMinutes(expanded.minutes);
+                        // Minutes are already in local time (API handles timezone stitching)
+                        const localMins = expanded.minutes;
                         return (
                           <div className="mosaic-blocks">
                             <div className="mosaic-block">
