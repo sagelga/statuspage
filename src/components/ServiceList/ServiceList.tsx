@@ -262,7 +262,15 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
                         : (i === 29) ? s.status
                         : 'nodata';
                       const uptimePct = dailyUptime?.[s.id]?.[i] ?? null;
-                      const effectiveSt = (uptimePct !== null && uptimePct < 95) ? 'down' : st;
+                      // When minute data is available, derive color from uptime%:
+                      //   ≥ 99.5% → operational (green) — don't let stale daily: history override good data
+                      //   < 95%   → down (red)
+                      //   95–99.5% → keep worst-seen status from daily: history (amber/degraded is meaningful)
+                      //   null    → fall back to daily: history entirely
+                      const effectiveSt = uptimePct === null ? st
+                        : uptimePct < 95 ? 'down'
+                        : uptimePct >= 99.5 ? 'operational'
+                        : st;
                       const isSelected = isExpanded && expanded?.dayIndex === i;
                       return (
                         <div
