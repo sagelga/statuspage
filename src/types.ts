@@ -20,6 +20,8 @@ export interface StatusResponse {
   services: ServiceResult[];
   history: Record<string, (ServiceStatus | 'nodata')[]>;
   dailyUptime?: Record<string, (number | null)[]>;
+  /** (operational + degraded) / total — service was responding, even if slow */
+  dailyFuncUptime?: Record<string, (number | null)[]>;
 }
 
 export interface HistoryMeta {

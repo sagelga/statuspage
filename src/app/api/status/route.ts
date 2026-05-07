@@ -49,32 +49,46 @@ async function fetchFromKV(key: string): Promise<string | null> {
 }
 
 // Reads per-day uptime % from epoch-based minute data (m:{serviceId})
-async function readDailyUptimePct(serviceId: string, tzOffsetMinutes: number): Promise<(number | null)[]> {
+// Returns { opPct, funcPct } where:
+//   opPct  = operational / total  (strict: degraded counts against uptime)
+//   funcPct = (operational + degraded) / total  (functional: service was responding)
+async function readDailyUptimePct(
+  serviceId: string, tzOffsetMinutes: number
+): Promise<{ opPct: (number | null)[]; funcPct: (number | null)[] }> {
   const dates = getLast30Dates(tzOffsetMinutes);
+  const empty = { opPct: new Array(30).fill(null), funcPct: new Array(30).fill(null) };
   const raw = await fetchFromKV(`m:${serviceId}`);
-  if (!raw) return new Array(30).fill(null);
+  if (!raw) return empty;
 
   try {
     const all: Record<string, string> = JSON.parse(raw);
     const tzOffsetSec = tzOffsetMinutes * 60;
 
-    return dates.map(localDate => {
+    const opPct: (number | null)[] = [];
+    const funcPct: (number | null)[] = [];
+
+    for (const localDate of dates) {
       const localDayStart = Math.floor(new Date(`${localDate}T00:00:00Z`).getTime() / 1000) - tzOffsetSec;
       const localDayEnd = localDayStart + 86400;
 
       let operational = 0;
+      let functional = 0; // operational + degraded
       let known = 0;
       for (const [epochStr, code] of Object.entries(all)) {
         const epoch = parseInt(epochStr);
         if (epoch >= localDayStart && epoch < localDayEnd) {
           known++;
-          if (code === 'o' || code === 'operational') operational++;
+          if (code === 'o' || code === 'operational') { operational++; functional++; }
+          else if (code === 'd' || code === 'degraded') { functional++; }
+          // 'x' / 'down' contributes to known but neither counter
         }
       }
-      return known === 0 ? null : (operational / known) * 100;
-    });
+      opPct.push(known === 0 ? null : (operational / known) * 100);
+      funcPct.push(known === 0 ? null : (functional / known) * 100);
+    }
+    return { opPct, funcPct };
   } catch {
-    return new Array(30).fill(null);
+    return empty;
   }
 }
 
@@ -206,15 +220,17 @@ export async function GET(request: NextRequest) {
 
     const history: Record<string, (ServiceStatus | 'nodata')[]> = {};
     const dailyUptime: Record<string, (number | null)[]> = {};
+    const dailyFuncUptime: Record<string, (number | null)[]> = {};
     const currentStatuses = await Promise.all(
       services.map(async (svc) => {
-        const [currentStatus, dailyHistory, uptimePct] = await Promise.all([
+        const [currentStatus, dailyHistory, { opPct, funcPct }] = await Promise.all([
           getCurrentStatus(svc.id),
           readDailyHistory(svc.id, tzOffsetMinutes),
           readDailyUptimePct(svc.id, tzOffsetMinutes),
         ]);
         history[svc.id] = dailyHistory;
-        dailyUptime[svc.id] = uptimePct;
+        dailyUptime[svc.id] = opPct;
+        dailyFuncUptime[svc.id] = funcPct;
         const pingRaw = await fetchFromKV(`ping:${svc.id}`);
         const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
         return { ...svc, status: currentStatus, responseTime, statusCode: null };
@@ -227,6 +243,7 @@ export async function GET(request: NextRequest) {
       services: currentStatuses,
       history,
       dailyUptime,
+      dailyFuncUptime,
     };
 
     return NextResponse.json(data, {

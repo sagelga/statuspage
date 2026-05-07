@@ -10,6 +10,8 @@ interface ServiceListProps {
   services?: ServiceResult[];
   history?: Record<string, (ServiceStatus | 'nodata')[]>;
   dailyUptime?: Record<string, (number | null)[]>;
+  /** (operational + degraded) / total — service was responding, even if slow */
+  dailyFuncUptime?: Record<string, (number | null)[]>;
   onRefresh?: () => void;
 }
 
@@ -26,7 +28,7 @@ interface ExpandedState {
 
 const SERVICE_URL_MAP = Object.fromEntries(SERVICES.map(s => [s.id, s.url]));
 
-export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, history, dailyUptime, onRefresh }) => {
+export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, history, dailyUptime, dailyFuncUptime, onRefresh }) => {
   const [expanded, setExpanded] = useState<ExpandedState | null>(null);
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
   const minuteCache = useRef<Record<string, (ServiceStatus | 'nodata')[]>>({});
@@ -262,14 +264,22 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
                         : (i === 29) ? s.status
                         : 'nodata';
                       const uptimePct = dailyUptime?.[s.id]?.[i] ?? null;
-                      // When minute data is available, derive color from uptime%:
-                      //   ≥ 99.5% → operational (green) — don't let stale daily: history override good data
-                      //   < 95%   → down (red)
-                      //   95–99.5% → keep worst-seen status from daily: history (amber/degraded is meaningful)
-                      //   null    → fall back to daily: history entirely
-                      const effectiveSt = uptimePct === null ? st
-                        : uptimePct < 95 ? 'down'
+                      const funcPct = dailyFuncUptime?.[s.id]?.[i] ?? null;
+                      // Derive bar color from minute data when available:
+                      //   opPct  = operational / total  (strict)
+                      //   funcPct = (operational + degraded) / total  (was service responding?)
+                      //
+                      //   ≥ 99.5% op    → green   (basically perfect)
+                      //   < 95% op AND
+                      //     funcPct < 95% → red   (service was truly down a significant amount)
+                      //   < 95% op AND
+                      //     funcPct ≥ 95% → amber (service was slow/degraded, not actually down)
+                      //   95–99.5% op   → keep worst-seen daily: history color
+                      //   null          → fall back to daily: history entirely
+                      const effectiveSt: ServiceStatus | 'nodata' = uptimePct === null ? st
                         : uptimePct >= 99.5 ? 'operational'
+                        : uptimePct < 95 && (funcPct === null || funcPct < 95) ? 'down'
+                        : uptimePct < 95 ? 'degraded'
                         : st;
                       const isSelected = isExpanded && expanded?.dayIndex === i;
                       return (

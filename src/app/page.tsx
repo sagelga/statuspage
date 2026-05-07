@@ -144,6 +144,7 @@ export default function Home() {
           services={brandServices}
           history={data?.history}
           dailyUptime={data?.dailyUptime}
+          dailyFuncUptime={data?.dailyFuncUptime}
           onRefresh={loadStatus}
         />
 
