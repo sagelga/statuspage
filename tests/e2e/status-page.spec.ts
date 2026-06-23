@@ -43,18 +43,21 @@ test.describe('Status Page — navbar', () => {
   test('navbar contains logo link', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.navLogoLink).toBeVisible();
-    await expect(pom.navLogoLink).toHaveAttribute('href', /byteside\.one/);
+    await expect(pom.navLogoLink).toHaveAttribute('href', '/');
+    await expect(pom.navLogoLink).toContainText('ByteSide.one');
   });
 
-  test('navbar has 5 navigation links', async ({ page }) => {
+  test('navbar has Home navigation link', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.navLinks).toHaveCount(5);
+    await expect(pom.navLinks).toHaveCount(1);
+    await expect(pom.navLinks.first()).toHaveText('Home');
   });
 });
 
 test.describe('Status Page — hero banner', () => {
   test('shows loading state initially (before API resolves)', async ({ page }) => {
-    // Delay the API response so we can assert on the loading state
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
     await page.route('**/api/status**', async (route) => {
       await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
@@ -118,6 +121,8 @@ test.describe('Status Page — hero banner', () => {
   });
 
   test('shows error banner when API call fails', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
     await page.route('**/api/status**', (route) => route.abort('failed'));
 
     const pom = new StatusPagePOM(page);
@@ -128,7 +133,39 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
+  test('sagelga brand shows 7 names with loading placeholders before full API resolves', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', async (route) => {
+      const url = new URL(route.request().url());
+      const brand = url.searchParams.get('brand');
+      const delay = brand === 'sagelga' ? 300 : 2500;
+      await new Promise((r) => setTimeout(r, delay));
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+      const body = brand === 'sagelga' ? MOCK_STATUS_SAGELGA : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/?brand=sagelga');
+
+    await expect(pom.serviceRows).toHaveCount(7, { timeout: 5000 });
+    await expect(pom.serviceRows.locator('.component-name', { hasText: 'sagelga.com' })).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
+
+    await pom.waitForServicesLoaded();
+    await expect(pom.serviceRows).toHaveCount(7);
+    await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible();
+  });
+
   test('service names appear immediately while API is pending', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
     await page.route('**/api/status**', async (route) => {
       await new Promise((r) => setTimeout(r, 3000));
       await route.fulfill({
@@ -231,7 +268,8 @@ test.describe('Status Page — service list', () => {
   });
 
   test('degraded service shows "มีปัญหา" badge', async ({ page }) => {
-    // Navigate with a fresh mock for this test
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
     await page.route('**/api/status**', (route) => {
       route.fulfill({
         status: 200,
@@ -313,8 +351,7 @@ test.describe('Status Page — inline mosaic panel (hover)', () => {
     await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
 
     // Trigger the onMouseLeave on the uptime-row by moving to a neutral position
-    // (the hero banner is above the service list)
-    await pom.heroBanner.hover();
+    await pom.aboutBlurb.hover();
     await expect(pom.mosaicInlinePanel).not.toBeVisible({ timeout: 5000 });
   });
 
@@ -417,16 +454,14 @@ test.describe('Status Page — footer', () => {
     await expect(pom.footer).toContainText('ByteSide.one');
   });
 
-  test('theme toggle button is present', async ({ page }) => {
+  test('theme settings button is present', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.themeToggleBtn).toBeVisible();
+    await expect(pom.themeSettingsBtn).toBeVisible();
   });
 
-  test('clicking theme toggle switches theme class on html element', async ({ page }) => {
+  test('selecting dark theme sets data-theme=dark on html element', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    const initialClass = await pom.getThemeClass();
-    await pom.clickThemeToggle();
-    const newClass = await pom.getThemeClass();
-    expect(newClass).not.toBe(initialClass);
+    await pom.selectTheme('Dark');
+    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 });

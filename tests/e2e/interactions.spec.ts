@@ -69,16 +69,16 @@ test.describe('Mosaic inline panel — click-to-lock', () => {
     await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
 
     const amLabel = pom.mosaicBlockAM.locator('.mosaic-block-label');
-    await expect(amLabel).toHaveText('AM');
+    await expect(amLabel).toHaveText('00:00 – 11:59');
   });
 
-  test('PM block has label "PM"', async ({ page }) => {
+  test('PM block has label "12:00 – 23:59"', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.serviceRows.first().locator('.uptime-bar').last().click();
     await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
 
     const pmLabel = pom.mosaicBlockPM.locator('.mosaic-block-label');
-    await expect(pmLabel).toHaveText('PM');
+    await expect(pmLabel).toHaveText('12:00 – 23:59');
   });
 
   test('clicking the same locked bar a second time closes the panel', async ({ page }) => {
@@ -143,10 +143,10 @@ test.describe('Mosaic inline panel — click-to-lock', () => {
 
     const axis = pom.mosaicBlockAM.locator('.mosaic-axis');
     await expect(axis).toBeVisible();
-    await expect(axis).toContainText('00');
-    await expect(axis).toContainText('15');
-    await expect(axis).toContainText('30');
-    await expect(axis).toContainText('45');
+    await expect(axis).toContainText('15m');
+    await expect(axis).toContainText('30m');
+    await expect(axis).toContainText('45m');
+    await expect(axis).toContainText('60m');
   });
 });
 
@@ -158,6 +158,8 @@ test.describe('Auto-refresh — timer reaching zero triggers refresh', () => {
 
     // First call: stale data (61 seconds old) — timer should fire immediately
     // Second call: fresh data — confirms refresh happened
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
     await page.route('**/api/status**', async (route) => {
       apiCallCount++;
       const staleTime = new Date(Date.now() - 61_000).toISOString();
@@ -194,63 +196,33 @@ test.describe('Theme toggle — visual state', () => {
     await new StatusPagePOM(page).goto();
   });
 
-  test('theme toggle button contains "Dark" text in light mode', async ({ page }) => {
-    // Force light theme first
-    await page.evaluate(() => {
-      document.documentElement.classList.add('light-theme');
-      document.documentElement.classList.remove('dark-theme');
-    });
-
+  test('theme settings button opens modal with Light and Dark options', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    const text = await pom.themeToggleBtn.textContent();
-    expect(text).toContain('Dark');
+    await pom.openThemeSettings();
+    await expect(pom.page.locator('.theme-option', { hasText: 'Light' })).toBeVisible();
+    await expect(pom.page.locator('.theme-option', { hasText: 'Dark' })).toBeVisible();
   });
 
-  test('theme toggle button contains "Light" text in dark mode', async ({ page }) => {
-    // Force dark theme
-    await page.evaluate(() => {
-      document.documentElement.classList.add('dark-theme');
-      document.documentElement.classList.remove('light-theme');
-    });
-    // Click toggle to trigger React re-render (it reads isDark state)
+  test('selecting Dark theme sets data-theme=dark', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    // Click twice: once to sync React state to dark, once to verify label
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    // The button text should reflect the current isDark state
-    const text = await pom.themeToggleBtn.textContent();
-    expect(text).toMatch(/Dark|Light/);
+    await pom.selectTheme('Dark');
+    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
-  test('html element gains dark-theme class after toggling to dark', async ({ page }) => {
-    // Ensure we start in light mode
-    await page.evaluate(() => {
-      document.documentElement.classList.add('light-theme');
-      document.documentElement.classList.remove('dark-theme');
-    });
-
+  test('selecting Light theme sets data-theme=light', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    // React isDark state starts false (light) in this scenario
-    // One click should add dark-theme
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    await pom.clickThemeToggle();
-
-    const htmlClass = await pom.getThemeClass();
-    expect(htmlClass).toMatch(/dark-theme|light-theme/);
+    await pom.selectTheme('Dark');
+    await pom.selectTheme('Light');
+    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
-  test('html element class alternates on each toggle click', async ({ page }) => {
+  test('data-theme changes when switching between Light and Dark', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-
-    const class1 = await pom.getThemeClass();
-    await pom.clickThemeToggle();
-    const class2 = await pom.getThemeClass();
-    await pom.clickThemeToggle();
-    const class3 = await pom.getThemeClass();
-
-    expect(class2).not.toBe(class1);
-    expect(class3).toBe(class1);
+    await pom.selectTheme('Light');
+    const theme1 = await pom.getDataTheme();
+    await pom.selectTheme('Dark');
+    const theme2 = await pom.getDataTheme();
+    expect(theme2).not.toBe(theme1);
   });
 });
 
@@ -312,23 +284,19 @@ test.describe('Keyboard accessibility — tab focus reaches key elements', () =>
     await expect(firstLink).toBeFocused();
   });
 
-  test('theme toggle button is focusable via keyboard', async ({ page }) => {
+  test('theme settings button is focusable via keyboard', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    await pom.themeToggleBtn.focus();
-    await expect(pom.themeToggleBtn).toBeFocused();
+    await pom.themeSettingsBtn.scrollIntoViewIfNeeded();
+    await pom.themeSettingsBtn.focus();
+    await expect(pom.themeSettingsBtn).toBeFocused();
   });
 
-  test('theme toggle activates on Enter key', async ({ page }) => {
+  test('theme settings opens on Enter key', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    await pom.themeToggleBtn.focus();
-
-    const before = await pom.getThemeClass();
+    await pom.themeSettingsBtn.scrollIntoViewIfNeeded();
+    await pom.themeSettingsBtn.focus();
     await page.keyboard.press('Enter');
-    const after = await pom.getThemeClass();
-
-    expect(after).not.toBe(before);
+    await expect(pom.page.locator('.theme-settings-list')).toBeVisible();
   });
 
   test('API link is focusable and has correct href', async ({ page }) => {
@@ -349,22 +317,23 @@ test.describe('Footer links — targets and content', () => {
     await pom.goto();
   });
 
-  test('footer contains "เกี่ยวกับ" column', async ({ page }) => {
+  test('footer contains "ByteSide.one" column', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.footer.scrollIntoViewIfNeeded();
-    await expect(pom.footer).toContainText('เกี่ยวกับ');
+    await expect(pom.footer).toContainText('ByteSide.one');
   });
 
-  test('footer contains "หมวดหมู่" column', async ({ page }) => {
+  test('footer contains "Community" column', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.footer.scrollIntoViewIfNeeded();
-    await expect(pom.footer).toContainText('หมวดหมู่');
+    await expect(pom.footer).toContainText('Community');
   });
 
-  test('footer contains "ติดตาม" column', async ({ page }) => {
+  test('footer contains social links', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.footer.scrollIntoViewIfNeeded();
-    await expect(pom.footer).toContainText('ติดตาม');
+    await expect(pom.footer).toContainText('Facebook');
+    await expect(pom.footer).toContainText('Twitter');
   });
 
   test('footer social links open in new tab (target=_blank)', async ({ page }) => {
@@ -385,11 +354,12 @@ test.describe('Footer links — targets and content', () => {
     expect(text?.trim().length).toBeGreaterThan(0);
   });
 
-  test('footer brand logo is visible', async ({ page }) => {
+  test('footer brand link is visible', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.footer.scrollIntoViewIfNeeded();
-    const logo = pom.footer.locator('.footer-logo');
+    const logo = pom.footer.locator('.footer-logo-text');
     await expect(logo).toBeVisible();
+    await expect(logo).toContainText('ByteSide.one');
   });
 });
 
@@ -404,11 +374,11 @@ test.describe('Accessibility — structural landmarks', () => {
   });
 
   test('page has a <nav> landmark', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.locator('nav.navbar')).toBeVisible();
   });
 
   test('page has a <footer> landmark', async ({ page }) => {
-    await expect(page.locator('footer')).toBeVisible();
+    await expect(page.locator('footer.footer')).toBeVisible();
   });
 
   test('page has a <main> element', async ({ page }) => {
@@ -443,13 +413,11 @@ test.describe('Performance — load timing', () => {
     await mockApiRoutes(page);
 
     const start = Date.now();
-    await page.goto('/');
-
     const pom = new StatusPagePOM(page);
-    await expect(pom.heroBanner).toBeVisible({ timeout: 5000 });
+    await pom.goto('/');
+    await expect(pom.serviceRows.first()).toBeVisible({ timeout: 5000 });
 
     const elapsed = Date.now() - start;
-    // Document for CI visibility — 5s is generous but catches hangs
     expect(elapsed).toBeLessThan(5000);
   });
 

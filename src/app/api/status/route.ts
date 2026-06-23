@@ -2,7 +2,8 @@ export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
-import { SERVICES_BY_BRAND, BrandId } from '@/config';
+import { BrandId } from '@/config';
+import { filterServiceDefinitions, isValidBrandParam } from '@/lib/brand-filter';
 import type { ServiceDefinition } from '@/types';
 import { StatusResponse, ServiceStatus } from '@/types';
 
@@ -220,9 +221,8 @@ export async function GET(request: NextRequest) {
     }
 
     let servicesToUse = services;
-    if (brandParam === 'byteside' || brandParam === 'sagelga') {
-      const brandIds = new Set(SERVICES_BY_BRAND[brandParam].map(s => s.id));
-      servicesToUse = services.filter(s => brandIds.has(s.id));
+    if (isValidBrandParam(brandParam)) {
+      servicesToUse = filterServiceDefinitions(services, brandParam);
       console.log(`[API] brand filter=${brandParam} services=${servicesToUse.length}/${services.length}`);
     }
 

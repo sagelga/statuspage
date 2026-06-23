@@ -1,29 +1,22 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { grantCookieConsent } from '../fixtures/consent';
 
 /**
  * Page Object Model for the main status page.
- *
- * Encapsulates all locator strategies and interaction helpers so tests stay
- * readable and changes to markup only need updating here.
  */
 export class StatusPagePOM {
   readonly page: Page;
-
-  // ── Layout ──────────────────────────────────────────────────────────────────
 
   readonly navbar: Locator;
   readonly navLogoLink: Locator;
   readonly navLinks: Locator;
   readonly footer: Locator;
-  readonly themeToggleBtn: Locator;
-
-  // ── Hero banner ─────────────────────────────────────────────────────────────
+  readonly themeSettingsBtn: Locator;
 
   readonly heroBanner: Locator;
   readonly heroTitle: Locator;
   readonly heroSub: Locator;
-
-  // ── Service list ────────────────────────────────────────────────────────────
+  readonly aboutBlurb: Locator;
 
   readonly servicesSection: Locator;
   readonly servicesSectionTitle: Locator;
@@ -35,22 +28,16 @@ export class StatusPagePOM {
   readonly refreshTimer: Locator;
   readonly minutePopup: Locator;
 
-  // ── Mosaic inline panel ─────────────────────────────────────────────────────
-
   readonly mosaicInlinePanel: Locator;
   readonly mosaicInlineDate: Locator;
   readonly mosaicInlinePct: Locator;
   readonly mosaicBlockAM: Locator;
   readonly mosaicBlockPM: Locator;
 
-  // ── Incident history ────────────────────────────────────────────────────────
-
   readonly incidentSection: Locator;
   readonly incidentSectionTitle: Locator;
   readonly incidentCard: Locator;
   readonly noIncidentsTitle: Locator;
-
-  // ── API section ─────────────────────────────────────────────────────────────
 
   readonly apiSection: Locator;
   readonly apiLink: Locator;
@@ -58,19 +45,17 @@ export class StatusPagePOM {
   constructor(page: Page) {
     this.page = page;
 
-    // Layout
     this.navbar         = page.locator('nav.navbar');
-    this.navLogoLink    = page.locator('a.nav-logo');
-    this.navLinks       = page.locator('ul.nav-list a.nav-link');
+    this.navLogoLink    = page.locator('a.nav-logo-text');
+    this.navLinks       = page.locator('ul.nav-list .nav-link');
     this.footer         = page.locator('footer.footer');
-    this.themeToggleBtn = page.locator('button.footer-toggle-btn');
+    this.themeSettingsBtn = page.locator('button.footer-toggle-btn[aria-label="Theme settings"]');
 
-    // Hero
     this.heroBanner = page.locator('.hero-banner');
     this.heroTitle  = page.locator('.hero-title');
     this.heroSub    = page.locator('.hero-sub');
+    this.aboutBlurb = page.locator('.about-blurb');
 
-    // Service list
     this.servicesSection      = page.locator('.section').filter({ has: page.locator('h2:has-text("บริการ")') });
     this.servicesSectionTitle = this.servicesSection.locator('.section-title');
     this.componentsCard       = page.locator('#components');
@@ -81,35 +66,39 @@ export class StatusPagePOM {
     this.refreshTimer         = page.locator('.refresh-timer-container');
     this.minutePopup          = page.locator('#minute-popup');
 
-    // Mosaic inline panel
     this.mosaicInlinePanel = page.locator('.mosaic-inline-panel');
     this.mosaicInlineDate  = page.locator('.mosaic-inline-date');
     this.mosaicInlinePct   = page.locator('.mosaic-inline-pct');
     this.mosaicBlockAM     = page.locator('.mosaic-block').nth(0);
     this.mosaicBlockPM     = page.locator('.mosaic-block').nth(1);
 
-    // Incident history
     this.incidentSection      = page.locator('.section').filter({ has: page.locator('h2:has-text("ประวัติเหตุการณ์")') });
     this.incidentSectionTitle = this.incidentSection.locator('.section-title');
     this.incidentCard         = page.locator('#incidents');
     this.noIncidentsTitle     = page.locator('.no-incidents-title');
 
-    // API section
     this.apiSection = page.locator('.section').filter({ has: page.locator('h2:has-text("JSON API")') });
     this.apiLink    = page.locator('.api-card a[href="/api/status"]');
   }
 
-  async goto() {
-    await this.page.goto('/');
+  async goto(path = '/') {
+    await grantCookieConsent(this.page);
+    await this.page.goto(path);
+    await this.dismissOverlays();
   }
 
-  /** Wait until service rows are visible and loading placeholders have been replaced. */
+  async dismissOverlays() {
+    const accept = this.page.getByRole('button', { name: 'Accept all' });
+    if (await accept.isVisible().catch(() => false)) {
+      await accept.click();
+    }
+  }
+
   async waitForServicesLoaded() {
     await expect(this.serviceRows.first()).toBeVisible({ timeout: 15000 });
     await expect(this.serviceRows.first().locator('.badge')).not.toHaveClass(/loading/, { timeout: 15000 });
   }
 
-  /** Wait until status data has loaded (hero or service badges no longer loading). */
   async waitForStatusLoaded() {
     const heroCount = await this.heroBanner.count();
     if (heroCount > 0) {
@@ -119,12 +108,20 @@ export class StatusPagePOM {
     }
   }
 
-  async clickThemeToggle() {
-    await this.themeToggleBtn.click();
+  async openThemeSettings() {
+    await this.themeSettingsBtn.scrollIntoViewIfNeeded();
+    await this.themeSettingsBtn.click();
+    await expect(this.page.locator('.theme-settings-list')).toBeVisible();
   }
 
-  async getThemeClass(): Promise<string> {
-    const cls = await this.page.locator('html').getAttribute('class') ?? '';
-    return cls;
+  async selectTheme(label: 'Light' | 'Dark' | 'System') {
+    await this.openThemeSettings();
+    await this.page.locator('.theme-option').filter({ hasText: label }).click();
+  }
+
+  async getDataTheme(): Promise<'light' | 'dark' | null> {
+    const attr = await this.page.locator('html').getAttribute('data-theme');
+    if (attr === 'light' || attr === 'dark') return attr;
+    return null;
   }
 }

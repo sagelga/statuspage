@@ -10,6 +10,7 @@ import { ApiSection } from '@/components/ApiSection/ApiSection';
 import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
 import { StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
+import { mergeStatusData } from '@/lib/status-data';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -29,12 +30,10 @@ const jsonLd = {
   },
 };
 
-// Navigation links for Navbar
 const NAV_LINKS: NavItem[] = [
   { label: 'Home', href: '/' },
 ];
 
-// Footer columns
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: 'ByteSide.one',
@@ -62,6 +61,12 @@ function getInitialBrand(): BrandId {
   return 'byteside';
 }
 
+function countLoadedForBrand(data: StatusResponse | null, brand: BrandId): number {
+  if (!data?.services) return 0;
+  const brandIds = new Set(SERVICES_BY_BRAND[brand].map((s) => s.id));
+  return data.services.filter((s) => brandIds.has(s.id)).length;
+}
+
 export default function Home() {
   const [data, setData] = useState<StatusResponse | null>(null);
   const [error, setError] = useState(false);
@@ -77,40 +82,49 @@ export default function Home() {
     }
   }, [activeBrand]);
 
-  const loadStatus = useCallback(async (withPriority = false) => {
+  const applyData = useCallback((next: StatusResponse) => {
+    dataRef.current = next;
+    setData(next);
+    setError(false);
+  }, []);
+
+  const fetchBrandPriority = useCallback(async (brand: BrandId) => {
     const tz = -new Date().getTimezoneOffset();
-
-    if (withPriority) {
-      try {
-        const priorityRes = await fetch(`/api/status?brand=${activeBrand}&tzOffset=${tz}`);
-        if (priorityRes.ok) {
-          const priorityJson: StatusResponse = await priorityRes.json();
-          dataRef.current = priorityJson;
-          setData(priorityJson);
-          setError(false);
-        }
-      } catch (err) {
-        console.error('Priority fetch failed:', err);
+    try {
+      const priorityRes = await fetch(`/api/status?brand=${brand}&tzOffset=${tz}`);
+      if (priorityRes.ok) {
+        const priorityJson: StatusResponse = await priorityRes.json();
+        const merged = mergeStatusData(dataRef.current, priorityJson);
+        applyData(merged);
       }
+    } catch (err) {
+      console.error('Priority fetch failed:', err);
     }
+  }, [applyData]);
 
+  const loadFullStatus = useCallback(async () => {
+    const tz = -new Date().getTimezoneOffset();
     try {
       const response = await fetch(`/api/status?tzOffset=${tz}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const json: StatusResponse = await response.json();
-      dataRef.current = json;
-      setData(json);
-      setError(false);
+      applyData(json);
     } catch (err) {
       console.error(err);
       if (!dataRef.current) setError(true);
     }
-  }, [activeBrand]);
+  }, [applyData]);
 
   useEffect(() => {
-    loadStatus(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadFullStatus();
+  }, [loadFullStatus]);
+
+  useEffect(() => {
+    const expected = SERVICES_BY_BRAND[activeBrand].length;
+    if (countLoadedForBrand(dataRef.current, activeBrand) < expected) {
+      fetchBrandPriority(activeBrand);
+    }
+  }, [activeBrand, fetchBrandPriority]);
 
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
@@ -168,7 +182,7 @@ export default function Home() {
           history={data?.history}
           dailyUptime={data?.dailyUptime}
           dailyFuncUptime={data?.dailyFuncUptime}
-          onRefresh={() => loadStatus(false)}
+          onRefresh={loadFullStatus}
         />
 
         <IncidentHistory />
