@@ -21,7 +21,7 @@
 }
 
 .cookie-banner-link {
-  color: var(--color-accent);
+  color: var(--color-accent-hover);
   text-decoration: underline;
   background: transparent;
   border: none;
@@ -32,7 +32,7 @@
 }
 
 .cookie-banner-link:hover {
-  color: var(--color-accent-hover);
+  color: #c4b5fd;
 }
 
 .cookie-banner-sep {
@@ -72,6 +72,6 @@
 }
 
 .cookie-btn-reject:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-hover);
 }

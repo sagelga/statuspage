@@ -111,13 +111,13 @@
 }
 
 .cookie-learn-more-link {
-  color: var(--color-accent);
+  color: var(--color-accent-hover);
   text-decoration: underline;
   transition: color 0.15s ease;
 }
 
 .cookie-learn-more-link:hover {
-  color: var(--color-accent-hover);
+  color: #c4b5fd;
 }
 
 .cookie-settings-actions {

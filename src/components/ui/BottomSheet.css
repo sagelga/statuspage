@@ -10,6 +10,11 @@
 }
 
 .bottom-sheet {
+  /* Accent tokens for always-dark sheet — independent of page theme */
+  --color-accent: #7c3aed;
+  --color-accent-hover: #a78bfa;
+  --color-accent-fg: #ffffff;
+
   position: fixed;
   bottom: 0;
   left: 0;

@@ -3,6 +3,11 @@
    ────────────────────────────────────────────────────────────── */
 
 .footer {
+  /* Accent tokens for always-dark footer — independent of page theme */
+  --color-accent: #a78bfa;
+  --color-accent-hover: #c4b5fd;
+  --color-accent-fg: #ffffff;
+
   background: #0a0a0a;
   color: #9ca3af;
   font-size: 0.875rem;
