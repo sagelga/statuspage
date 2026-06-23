@@ -133,6 +133,36 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
+  test('sagelga brand-filtered fetch is requested before full fetch on mount', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    const requestOrder: string[] = [];
+
+    await page.route('**/api/status**', async (route) => {
+      const url = route.request().url();
+      requestOrder.push(url);
+      const brand = new URL(url).searchParams.get('brand');
+      const delay = brand === 'sagelga' ? 150 : 0;
+      await new Promise((r) => setTimeout(r, delay));
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+      const body = brand === 'sagelga' ? MOCK_STATUS_SAGELGA : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/?brand=sagelga');
+    await pom.waitForServicesLoaded();
+
+    const brandIdx = requestOrder.findIndex((u) => u.includes('brand=sagelga'));
+    const fullIdx = requestOrder.findIndex((u) => !new URL(u).searchParams.has('brand'));
+    expect(brandIdx).toBeGreaterThanOrEqual(0);
+    expect(fullIdx).toBeGreaterThan(brandIdx);
+  });
+
   test('sagelga brand shows 7 names with loading placeholders before full API resolves', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);

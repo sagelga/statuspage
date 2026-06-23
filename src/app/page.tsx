@@ -11,6 +11,7 @@ import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
 import { StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
 import { mergeStatusData } from '@/lib/status-data';
+import { loadStatusSequence } from '@/lib/load-status-sequence';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -73,6 +74,12 @@ export default function Home() {
   const [activeBrand, setActiveBrand] = useState<BrandId>(getInitialBrand);
   const [brandFading, setBrandFading] = useState(false);
   const dataRef = useRef<StatusResponse | null>(null);
+  const initialLoadDone = useRef(false);
+  const activeBrandRef = useRef(activeBrand);
+
+  useEffect(() => {
+    activeBrandRef.current = activeBrand;
+  }, [activeBrand]);
 
   useEffect(() => {
     if (activeBrand === 'sagelga') {
@@ -94,8 +101,7 @@ export default function Home() {
       const priorityRes = await fetch(`/api/status?brand=${brand}&tzOffset=${tz}`);
       if (priorityRes.ok) {
         const priorityJson: StatusResponse = await priorityRes.json();
-        const merged = mergeStatusData(dataRef.current, priorityJson);
-        applyData(merged);
+        applyData(mergeStatusData(dataRef.current, priorityJson));
       }
     } catch (err) {
       console.error('Priority fetch failed:', err);
@@ -116,10 +122,33 @@ export default function Home() {
   }, [applyData]);
 
   useEffect(() => {
-    loadFullStatus();
-  }, [loadFullStatus]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const brand = activeBrandRef.current;
+        const { hadFull } = await loadStatusSequence({
+          brand,
+          fetch: (url) => fetch(url),
+          withPriority: true,
+          getCurrent: () => dataRef.current,
+          onUpdate: (next) => {
+            if (!cancelled) applyData(next);
+          },
+        });
+        if (!cancelled && !hadFull && !dataRef.current) setError(true);
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && !dataRef.current) setError(true);
+      } finally {
+        if (!cancelled) initialLoadDone.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    if (!initialLoadDone.current) return;
     const expected = SERVICES_BY_BRAND[activeBrand].length;
     if (countLoadedForBrand(dataRef.current, activeBrand) < expected) {
       fetchBrandPriority(activeBrand);
