@@ -2,7 +2,7 @@ export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
-import { SERVICES } from '@/config';
+import { SERVICES_BY_BRAND, BrandId } from '@/config';
 import type { ServiceDefinition } from '@/types';
 import { StatusResponse, ServiceStatus } from '@/types';
 
@@ -193,6 +193,7 @@ function calculateOverallStatus(statuses: ServiceStatus[]): ServiceStatus {
 export async function GET(request: NextRequest) {
   const tzParam = request.nextUrl.searchParams.get('tzOffset');
   const tzOffsetMinutes = Math.max(-720, Math.min(840, parseInt(tzParam ?? '0', 10) || 0));
+  const brandParam = request.nextUrl.searchParams.get('brand') as BrandId | null;
   const now = new Date();
   try {
     const configRaw = await fetchFromKV('config:services');
@@ -218,11 +219,18 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
+    let servicesToUse = services;
+    if (brandParam === 'byteside' || brandParam === 'sagelga') {
+      const brandIds = new Set(SERVICES_BY_BRAND[brandParam].map(s => s.id));
+      servicesToUse = services.filter(s => brandIds.has(s.id));
+      console.log(`[API] brand filter=${brandParam} services=${servicesToUse.length}/${services.length}`);
+    }
+
     const history: Record<string, (ServiceStatus | 'nodata')[]> = {};
     const dailyUptime: Record<string, (number | null)[]> = {};
     const dailyFuncUptime: Record<string, (number | null)[]> = {};
     const currentStatuses = await Promise.all(
-      services.map(async (svc) => {
+      servicesToUse.map(async (svc) => {
         const [currentStatus, dailyHistory, { opPct, funcPct }] = await Promise.all([
           getCurrentStatus(svc.id),
           readDailyHistory(svc.id, tzOffsetMinutes),

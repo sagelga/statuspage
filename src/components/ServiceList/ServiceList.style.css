@@ -17,10 +17,15 @@
 .component-row:nth-child(8) { animation-delay: 350ms; }
 .component-row:last-child { border-bottom: none; }
 .component-row { transition: background 0.18s var(--ease-out-quart); }
+.component-row.loading { opacity: 0.92; animation: none; }
+.component-row.loading .component-name { color: var(--text); }
+.component-row.loading .component-icon { opacity: 0.7; }
+.component-row.loading:hover { background: transparent; }
 .component-row:hover { background: rgba(82,0,106,0.04); }
 :root.dark-theme .component-row:hover { background: rgba(255,255,255,0.03); }
 @media (prefers-color-scheme: dark) { :root:not(.light-theme) .component-row:hover { background: rgba(255,255,255,0.03); } }
 :root.sagelga-brand .component-row:hover { background: rgba(201,148,58,0.06); }
+:root.sagelga-brand .component-row.loading:hover { background: transparent; }
 
 .component-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
 .component-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted); transition: color 0.2s ease; }

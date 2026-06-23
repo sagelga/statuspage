@@ -103,15 +103,20 @@ export class StatusPagePOM {
     await this.page.goto('/');
   }
 
-  /** Wait until the skeleton loader has been replaced by real service rows. */
+  /** Wait until service rows are visible and loading placeholders have been replaced. */
   async waitForServicesLoaded() {
-    await expect(this.skeletonRows.first()).not.toBeVisible({ timeout: 15000 });
     await expect(this.serviceRows.first()).toBeVisible({ timeout: 15000 });
+    await expect(this.serviceRows.first().locator('.badge')).not.toHaveClass(/loading/, { timeout: 15000 });
   }
 
-  /** Wait until the hero banner has a concrete status (not 'loading'). */
+  /** Wait until status data has loaded (hero or service badges no longer loading). */
   async waitForStatusLoaded() {
-    await expect(this.heroBanner).not.toHaveClass(/loading/, { timeout: 15000 });
+    const heroCount = await this.heroBanner.count();
+    if (heroCount > 0) {
+      await expect(this.heroBanner).not.toHaveClass(/loading/, { timeout: 15000 });
+    } else {
+      await expect(this.serviceRows.first().locator('.badge')).not.toHaveClass(/loading/, { timeout: 15000 });
+    }
   }
 
   async clickThemeToggle() {

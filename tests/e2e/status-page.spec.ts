@@ -55,8 +55,8 @@ test.describe('Status Page — navbar', () => {
 test.describe('Status Page — hero banner', () => {
   test('shows loading state initially (before API resolves)', async ({ page }) => {
     // Delay the API response so we can assert on the loading state
-    await page.route('/api/status', async (route) => {
-      await new Promise((r) => setTimeout(r, 400));
+    await page.route('**/api/status**', async (route) => {
+      await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -67,20 +67,22 @@ test.describe('Status Page — hero banner', () => {
     const pom = new StatusPagePOM(page);
     await pom.goto();
 
-    // Loading banner should appear before the data arrives
-    await expect(pom.heroBanner).toHaveClass(/loading/);
-    await expect(pom.heroTitle).toHaveText('กำลังตรวจสอบระบบ...');
+    // Service names render immediately; status badges and bars show loading placeholders
+    await expect(pom.serviceRows).toHaveCount(5);
+    await expect(pom.serviceRows.first().locator('.component-name')).not.toBeEmpty();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
   });
 
-  test('shows operational banner after data loads', async ({ page }) => {
+  test('hides hero banner when all services are operational', async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
     await pom.goto();
     await pom.waitForStatusLoaded();
 
-    await expect(pom.heroBanner).toHaveClass(/operational/);
-    await expect(pom.heroTitle).toBeVisible();
-    await expect(pom.heroSub).toContainText('ตรวจสอบล่าสุด');
+    await expect(pom.heroBanner).toHaveCount(0);
+    const badges = pom.serviceRows.locator('.badge.operational');
+    await expect(badges).toHaveCount(5);
   });
 
   test('shows degraded banner when a service is slow', async ({ page }) => {
@@ -116,7 +118,7 @@ test.describe('Status Page — hero banner', () => {
   });
 
   test('shows error banner when API call fails', async ({ page }) => {
-    await page.route('/api/status', (route) => route.abort('failed'));
+    await page.route('**/api/status**', (route) => route.abort('failed'));
 
     const pom = new StatusPagePOM(page);
     await pom.goto();
@@ -126,6 +128,25 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
+  test('service names appear immediately while API is pending', async ({ page }) => {
+    await page.route('**/api/status**', async (route) => {
+      await new Promise((r) => setTimeout(r, 3000));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_STATUS),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto();
+
+    await expect(pom.serviceRows).toHaveCount(5, { timeout: 5000 });
+    await expect(pom.serviceRows.first().locator('.component-name')).not.toBeEmpty();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
+  });
+
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
@@ -200,14 +221,18 @@ test.describe('Status Page — service list', () => {
     await expect(pom.uptimeLegend).toContainText('ไม่มีข้อมูล');
   });
 
-  test('skeleton rows are gone after data loads', async ({ page }) => {
+  test('loading badges are gone after data loads', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.skeletonRows).toHaveCount(0);
+    const badges = pom.serviceRows.locator('.badge');
+    const count = await badges.count();
+    for (let i = 0; i < count; i++) {
+      await expect(badges.nth(i)).not.toHaveClass(/loading/);
+    }
   });
 
   test('degraded service shows "มีปัญหา" badge', async ({ page }) => {
     // Navigate with a fresh mock for this test
-    await page.route('/api/status', (route) => {
+    await page.route('**/api/status**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',

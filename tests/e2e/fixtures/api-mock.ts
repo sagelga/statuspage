@@ -54,7 +54,7 @@ export const MOCK_MINUTES: ('operational' | 'nodata')[] = [
 export async function mockApiRoutes(page: Page, statusOverride?: StatusResponse) {
   const statusBody = JSON.stringify(statusOverride ?? MOCK_STATUS);
 
-  await page.route('/api/status', (route) => {
+  await page.route('**/api/status**', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',

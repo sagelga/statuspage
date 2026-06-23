@@ -158,7 +158,7 @@ test.describe('Auto-refresh — timer reaching zero triggers refresh', () => {
 
     // First call: stale data (61 seconds old) — timer should fire immediately
     // Second call: fresh data — confirms refresh happened
-    await page.route('/api/status', async (route) => {
+    await page.route('**/api/status**', async (route) => {
       apiCallCount++;
       const staleTime = new Date(Date.now() - 61_000).toISOString();
       route.fulfill({

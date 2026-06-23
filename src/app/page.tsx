@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Hero } from '@/components/Hero/Hero';
@@ -54,11 +54,20 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   },
 ];
 
+function getInitialBrand(): BrandId {
+  if (typeof window === 'undefined') return 'byteside';
+  const params = new URLSearchParams(window.location.search);
+  const brandParam = params.get('brand');
+  if (brandParam === 'sagelga' || brandParam === 'byteside') return brandParam;
+  return 'byteside';
+}
+
 export default function Home() {
   const [data, setData] = useState<StatusResponse | null>(null);
   const [error, setError] = useState(false);
-  const [activeBrand, setActiveBrand] = useState<BrandId>('byteside');
+  const [activeBrand, setActiveBrand] = useState<BrandId>(getInitialBrand);
   const [brandFading, setBrandFading] = useState(false);
+  const dataRef = useRef<StatusResponse | null>(null);
 
   useEffect(() => {
     if (activeBrand === 'sagelga') {
@@ -68,32 +77,40 @@ export default function Home() {
     }
   }, [activeBrand]);
 
-  // Read brand from URL on mount
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const brandParam = params.get('brand') as BrandId | null;
-    if (brandParam === 'sagelga' || brandParam === 'byteside') {
-      setActiveBrand(brandParam);
-    }
-  }, []);
+  const loadStatus = useCallback(async (withPriority = false) => {
+    const tz = -new Date().getTimezoneOffset();
 
-  const loadStatus = useCallback(async () => {
+    if (withPriority) {
+      try {
+        const priorityRes = await fetch(`/api/status?brand=${activeBrand}&tzOffset=${tz}`);
+        if (priorityRes.ok) {
+          const priorityJson: StatusResponse = await priorityRes.json();
+          dataRef.current = priorityJson;
+          setData(priorityJson);
+          setError(false);
+        }
+      } catch (err) {
+        console.error('Priority fetch failed:', err);
+      }
+    }
+
     try {
-      const tz = -new Date().getTimezoneOffset();
       const response = await fetch(`/api/status?tzOffset=${tz}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const json: StatusResponse = await response.json();
+      dataRef.current = json;
       setData(json);
       setError(false);
     } catch (err) {
       console.error(err);
-      setError(true);
+      if (!dataRef.current) setError(true);
     }
-  }, []);
+  }, [activeBrand]);
 
   useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
+    loadStatus(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
@@ -106,13 +123,18 @@ export default function Home() {
     }, 160);
   };
 
-  const brandServiceIds = new Set(SERVICES_BY_BRAND[activeBrand].map(s => s.id));
+  const visibleServices = SERVICES_BY_BRAND[activeBrand];
+  const brandServiceIds = new Set(visibleServices.map(s => s.id));
   const brandServices = data?.services?.filter(s => brandServiceIds.has(s.id));
-  const brandStatus: ServiceStatus | 'loading' = brandServices
-    ? brandServices.some(s => s.status === 'down') ? 'down'
-      : brandServices.some(s => s.status === 'degraded') ? 'degraded'
-      : 'operational'
-    : 'loading';
+  const expectedCount = visibleServices.length;
+  const loadedCount = brandServices?.length ?? 0;
+  const allBrandLoaded = loadedCount === expectedCount && brandServices !== undefined;
+
+  const brandStatus: ServiceStatus | 'loading' = !allBrandLoaded
+    ? 'loading'
+    : brandServices.some(s => s.status === 'down') ? 'down'
+    : brandServices.some(s => s.status === 'degraded') ? 'degraded'
+    : 'operational';
   const activeBrandMeta = BRANDS.find(b => b.id === activeBrand)!;
 
   return (
@@ -130,7 +152,7 @@ export default function Home() {
       />
       <div className={`page-wrap${brandFading ? ' brand-fade' : ''}`}>
         <Hero
-          status={error ? ('down' as ServiceStatus) : data ? brandStatus : 'loading'}
+          status={error ? ('down' as ServiceStatus) : brandStatus}
           checkedAt={data?.checkedAt}
           error={error}
         />
@@ -141,11 +163,12 @@ export default function Home() {
 
         <ServiceList
           checkedAt={data?.checkedAt || new Date().toISOString()}
+          visibleServices={visibleServices}
           services={brandServices}
           history={data?.history}
           dailyUptime={data?.dailyUptime}
           dailyFuncUptime={data?.dailyFuncUptime}
-          onRefresh={loadStatus}
+          onRefresh={() => loadStatus(false)}
         />
 
         <IncidentHistory />

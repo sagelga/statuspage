@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { RefreshTimer } from '../RefreshTimer/RefreshTimer';
-import { ServiceResult, ServiceStatus } from '../../types';
+import { ServiceResult, ServiceStatus, ServiceDefinition } from '../../types';
 import { Icons, StatusLabels } from '../Icons';
-import { SERVICES } from '../../config';
 import './ServiceList.style.css';
 
 interface ServiceListProps {
   checkedAt: string;
+  visibleServices: ServiceDefinition[];
   services?: ServiceResult[];
   history?: Record<string, (ServiceStatus | 'nodata')[]>;
   dailyUptime?: Record<string, (number | null)[]>;
@@ -25,10 +25,15 @@ interface ExpandedState {
   locked: boolean;
 }
 
-
-const SERVICE_URL_MAP = Object.fromEntries(SERVICES.map(s => [s.id, s.url]));
-
-export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, history, dailyUptime, dailyFuncUptime, onRefresh }) => {
+export const ServiceList: React.FC<ServiceListProps> = ({
+  checkedAt,
+  visibleServices,
+  services,
+  history,
+  dailyUptime,
+  dailyFuncUptime,
+  onRefresh,
+}) => {
   const [expanded, setExpanded] = useState<ExpandedState | null>(null);
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
   const minuteCache = useRef<Record<string, (ServiceStatus | 'nodata')[]>>({});
@@ -155,6 +160,13 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
     </span>
   );
 
+  const makeLoadingBadge = () => (
+    <span className="badge loading">
+      <span className="dot"></span>
+      กำลังโหลด
+    </span>
+  );
+
   const calculateUptimePct = (minutes: (ServiceStatus | 'nodata')[]) => {
     const known = minutes.filter(m => m !== 'nodata');
     if (known.length === 0) return null;
@@ -200,142 +212,120 @@ export const ServiceList: React.FC<ServiceListProps> = ({ checkedAt, services, h
         <RefreshTimer lastUpdated={checkedAt} refreshInterval={60} onRefresh={onRefresh} />
       </div>
       <div className="components-card" id="components">
-        {!services ? (
-          SERVICES.map((s) => (
-            <div key={s.id} className="skeleton-row">
-              <div className="sk-top">
-                <div className="sk sk-icon"></div>
-                <div className="sk sk-name"></div>
-                <div className="sk sk-badge"></div>
-              </div>
-              <div className="uptime-row">
-                <div className="sk sk-bars"></div>
-                <div className="uptime-footer">
-                  <div className="sk" style={{ height: '10px', width: '40px' }}></div>
-                  <div className="sk" style={{ height: '10px', width: '30px' }}></div>
+        {visibleServices.map((def) => {
+          const loaded = services?.find(s => s.id === def.id);
+          const isLoaded = loaded !== undefined;
+          const isExpanded = isLoaded && expanded?.serviceId === def.id;
+          const svcHistory = isLoaded ? history?.[def.id] : undefined;
+          const pct = isExpanded && expanded ? calculateUptimePct(expanded.minutes) : null;
+          const pctNum = pct !== null ? parseFloat(pct) : null;
+          const pctColor = pctNum === null ? 'var(--text-muted)'
+            : pctNum >= 99.5 ? 'var(--ok-text)'
+            : pctNum >= 95   ? 'var(--warn-text)'
+            : 'var(--err-text)';
+
+          return (
+            <div key={def.id} className={`component-row${isLoaded ? ` status-${loaded.status}` : ' loading'}`}>
+              <div className="component-top">
+                <span className="component-icon" dangerouslySetInnerHTML={{ __html: Icons[def.icon as keyof typeof Icons] || '' }}></span>
+                <span className="component-name">{def.name}</span>
+                {def.url && (
+                  <div className="info-btn-wrap">
+                    <button
+                      className={`info-btn${openTooltip === def.id ? ' open' : ''}`}
+                      aria-label={`ดู endpoint ของ ${def.name}`}
+                      onClick={(e) => { e.stopPropagation(); setOpenTooltip(openTooltip === def.id ? null : def.id); }}
+                    >i</button>
+                    {openTooltip === def.id && (
+                      <div className="info-tooltip" role="tooltip">
+                        <span className="info-tooltip-label">endpoint</span>
+                        <a href={def.url} target="_blank" rel="noopener noreferrer" className="info-tooltip-url">
+                          {def.url}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="component-meta">
+                  {isLoaded && loaded.responseTime !== null && (
+                    <span className="response-time">{loaded.responseTime} ms</span>
+                  )}
+                  {!isLoaded && <span className="response-time loading" aria-hidden="true">&nbsp;</span>}
+                  {isLoaded ? makeBadge(loaded.status) : makeLoadingBadge()}
                 </div>
+              </div>
+
+              <div className="uptime-row" onMouseLeave={() => isLoaded && handleRowLeave(def.id)}>
+                <div className={`uptime-bars${!isLoaded ? ' loading' : ''}${isExpanded ? ' has-selection' : ''}`}>
+                  {Array.from({ length: 30 }).map((_, i) => {
+                    if (!isLoaded) {
+                      return <div key={i} className="uptime-bar loading" title={DATE_STRS[i]} />;
+                    }
+                    const st = (svcHistory && svcHistory[i] && svcHistory[i] !== 'nodata')
+                      ? svcHistory[i]
+                      : (i === 29) ? loaded.status
+                      : 'nodata';
+                    const uptimePct = dailyUptime?.[def.id]?.[i] ?? null;
+                    const funcPct = dailyFuncUptime?.[def.id]?.[i] ?? null;
+                    const effectiveSt: ServiceStatus | 'nodata' = uptimePct === null ? st
+                      : uptimePct >= 99.5 ? 'operational'
+                      : uptimePct < 95 && (funcPct === null || funcPct < 95) ? 'down'
+                      : uptimePct < 95 ? 'degraded'
+                      : st;
+                    const isSelected = isExpanded && expanded?.dayIndex === i;
+                    return (
+                      <div
+                        key={i}
+                        className={`uptime-bar ${effectiveSt}${isSelected ? ' selected' : ''}`}
+                        onMouseEnter={() => handleBarHover(def.id, i, DATE_ISO[i], DATE_STRS[i])}
+                        onClick={() => handleBarClick(def.id, i, DATE_ISO[i], DATE_STRS[i])}
+                        title={DATE_STRS[i]}
+                      />
+                    );
+                  })}
+                </div>
+
+                <div className="uptime-footer">
+                  <span>30 วันก่อน</span>
+                  {!isExpanded && <span className="uptime-hint">กดที่แถบเพื่อดูรายนาที</span>}
+                  <span>วันนี้</span>
+                </div>
+
+                {isExpanded && expanded && (
+                  <div className="mosaic-inline-panel">
+                    <div className="mosaic-inline-header">
+                      <span className="mosaic-inline-date">
+                        {expanded.label}
+                        <span className="mosaic-tz-label">{tzLabel}</span>
+                      </span>
+                      <span className="mosaic-inline-pct" style={{ color: pctColor }}>
+                        {expanded.loading ? <span className="mono">—</span> : pct !== null ? <span className="mono">{pct}%</span> : 'ไม่มีข้อมูล'}
+                      </span>
+                    </div>
+
+                    {(() => {
+                      // Minutes are already in local time (API handles timezone stitching)
+                      const localMins = expanded.minutes;
+                      return (
+                        <div className="mosaic-blocks">
+                          <div className="mosaic-block">
+                            <span className="mosaic-block-label">00:00 – 11:59</span>
+                            {renderMosaicHalf(localMins, 0, expanded.loading)}
+                          </div>
+
+                          <div className="mosaic-block">
+                            <span className="mosaic-block-label">12:00 – 23:59</span>
+                            {renderMosaicHalf(localMins, 12, expanded.loading)}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
-          ))
-        ) : (
-          services.map((s) => {
-            const isExpanded = expanded?.serviceId === s.id;
-            const svcHistory = history?.[s.id];
-            const pct = isExpanded && expanded ? calculateUptimePct(expanded.minutes) : null;
-            const pctNum = pct !== null ? parseFloat(pct) : null;
-            const pctColor = pctNum === null ? 'var(--text-muted)'
-              : pctNum >= 99.5 ? 'var(--ok-text)'
-              : pctNum >= 95   ? 'var(--warn-text)'
-              : 'var(--err-text)';
-
-            return (
-              <div key={s.id} className={`component-row status-${s.status}`}>
-                <div className="component-top">
-                  <span className="component-icon" dangerouslySetInnerHTML={{ __html: Icons[s.icon as keyof typeof Icons] || '' }}></span>
-                  <span className="component-name">{s.name}</span>
-                  {SERVICE_URL_MAP[s.id] && (
-                    <div className="info-btn-wrap">
-                      <button
-                        className={`info-btn${openTooltip === s.id ? ' open' : ''}`}
-                        aria-label={`ดู endpoint ของ ${s.name}`}
-                        onClick={(e) => { e.stopPropagation(); setOpenTooltip(openTooltip === s.id ? null : s.id); }}
-                      >i</button>
-                      {openTooltip === s.id && (
-                        <div className="info-tooltip" role="tooltip">
-                          <span className="info-tooltip-label">endpoint</span>
-                          <a href={SERVICE_URL_MAP[s.id]} target="_blank" rel="noopener noreferrer" className="info-tooltip-url">
-                            {SERVICE_URL_MAP[s.id]}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="component-meta">
-                    {s.responseTime !== null && <span className="response-time">{s.responseTime} ms</span>}
-                    {makeBadge(s.status)}
-                  </div>
-                </div>
-
-                <div className="uptime-row" onMouseLeave={() => handleRowLeave(s.id)}>
-                  <div className={`uptime-bars${isExpanded ? ' has-selection' : ''}`}>
-                    {Array.from({ length: 30 }).map((_, i) => {
-                      const st = (svcHistory && svcHistory[i] && svcHistory[i] !== 'nodata')
-                        ? svcHistory[i]
-                        : (i === 29) ? s.status
-                        : 'nodata';
-                      const uptimePct = dailyUptime?.[s.id]?.[i] ?? null;
-                      const funcPct = dailyFuncUptime?.[s.id]?.[i] ?? null;
-                      // Derive bar color from minute data when available:
-                      //   opPct  = operational / total  (strict)
-                      //   funcPct = (operational + degraded) / total  (was service responding?)
-                      //
-                      //   ≥ 99.5% op    → green   (basically perfect)
-                      //   < 95% op AND
-                      //     funcPct < 95% → red   (service was truly down a significant amount)
-                      //   < 95% op AND
-                      //     funcPct ≥ 95% → amber (service was slow/degraded, not actually down)
-                      //   95–99.5% op   → keep worst-seen daily: history color
-                      //   null          → fall back to daily: history entirely
-                      const effectiveSt: ServiceStatus | 'nodata' = uptimePct === null ? st
-                        : uptimePct >= 99.5 ? 'operational'
-                        : uptimePct < 95 && (funcPct === null || funcPct < 95) ? 'down'
-                        : uptimePct < 95 ? 'degraded'
-                        : st;
-                      const isSelected = isExpanded && expanded?.dayIndex === i;
-                      return (
-                        <div
-                          key={i}
-                          className={`uptime-bar ${effectiveSt}${isSelected ? ' selected' : ''}`}
-                          onMouseEnter={() => handleBarHover(s.id, i, DATE_ISO[i], DATE_STRS[i])}
-                          onClick={() => handleBarClick(s.id, i, DATE_ISO[i], DATE_STRS[i])}
-                          title={DATE_STRS[i]}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  <div className="uptime-footer">
-                    <span>30 วันก่อน</span>
-                    {!isExpanded && <span className="uptime-hint">กดที่แถบเพื่อดูรายนาที</span>}
-                    <span>วันนี้</span>
-                  </div>
-
-                  {isExpanded && expanded && (
-                    <div className="mosaic-inline-panel">
-                      <div className="mosaic-inline-header">
-                        <span className="mosaic-inline-date">
-                          {expanded.label}
-                          <span className="mosaic-tz-label">{tzLabel}</span>
-                        </span>
-                        <span className="mosaic-inline-pct" style={{ color: pctColor }}>
-                          {expanded.loading ? <span className="mono">—</span> : pct !== null ? <span className="mono">{pct}%</span> : 'ไม่มีข้อมูล'}
-                        </span>
-                      </div>
-
-                      {(() => {
-                        // Minutes are already in local time (API handles timezone stitching)
-                        const localMins = expanded.minutes;
-                        return (
-                          <div className="mosaic-blocks">
-                            <div className="mosaic-block">
-                              <span className="mosaic-block-label">00:00 – 11:59</span>
-                              {renderMosaicHalf(localMins, 0, expanded.loading)}
-                            </div>
-
-                            <div className="mosaic-block">
-                              <span className="mosaic-block-label">12:00 – 23:59</span>
-                              {renderMosaicHalf(localMins, 12, expanded.loading)}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+          );
+        })}
         <div className="uptime-legend">
           <span><span className="uptime-legend-dot operational"></span> ทำงานปกติ</span>
           <span><span className="uptime-legend-dot degraded"></span> ล่าช้า</span>
