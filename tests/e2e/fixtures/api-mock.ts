@@ -80,8 +80,14 @@ function resolveStatusBody(url: string, statusOverride?: StatusResponse): string
  * Intercepts /api/status and /api/minutes/* with deterministic mock data so
  * tests are fully offline and never flaky due to external service availability.
  */
-export async function mockApiRoutes(page: Page, statusOverride?: StatusResponse) {
-  await grantCookieConsent(page);
+export async function mockApiRoutes(
+  page: Page,
+  statusOverride?: StatusResponse,
+  options?: { grantConsent?: boolean },
+) {
+  if (options?.grantConsent !== false) {
+    await grantCookieConsent(page);
+  }
 
   await page.route('**/api/status**', (route) => {
     route.fulfill({

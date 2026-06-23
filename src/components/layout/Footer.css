@@ -4,8 +4,8 @@
 
 .footer {
   /* Accent tokens for always-dark footer — independent of page theme */
-  --color-accent: #a78bfa;
-  --color-accent-hover: #c4b5fd;
+  --color-accent: #e0c3ff;
+  --color-accent-hover: #f0e6ff;
   --color-accent-fg: #ffffff;
 
   background: #0a0a0a;
