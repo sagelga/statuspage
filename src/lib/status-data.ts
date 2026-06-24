@@ -1,3 +1,6 @@
+/**
+ * Merges partial and full /api/status responses on the client without losing cached history.
+ */
 import type { CurrentStatusResponse, StatusResponse } from '@/types';
 
 function hasRecordKeys<T>(record: Record<string, T> | undefined): record is Record<string, T> {
@@ -15,7 +18,15 @@ function toStatusResponse(incoming: StatusResponse | CurrentStatusResponse): Sta
   };
 }
 
-/** Merge a partial or full payload into existing data (fast current before full history). */
+/**
+ * Merge an incoming API payload into existing client state.
+ * - Services are unioned by id (incoming wins per id).
+ * - History/uptime maps are shallow-merged only when incoming has non-empty keys;
+ *   fast currentOnly payloads with `history: {}` preserve prior history.
+ * @param prev - Existing merged state, or null on first load
+ * @param incoming - Full or CurrentStatusResponse from /api/status
+ * @returns Complete StatusResponse for React state
+ */
 export function mergeStatusData(
   prev: StatusResponse | null,
   incoming: StatusResponse | CurrentStatusResponse,

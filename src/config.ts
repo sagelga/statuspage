@@ -1,3 +1,8 @@
+/**
+ * Site and brand configuration for UI display.
+ * Service health checks run in statuspage-pulse; this file mirrors KV service ids/names for rendering.
+ * To add/remove monitored services: edit statuspage-pulse/src/config.ts and redeploy the worker.
+ */
 import type { ServiceDefinition } from './types';
 
 export const TIMEOUT_MS = 5000;

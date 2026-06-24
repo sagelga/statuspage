@@ -1,3 +1,11 @@
+/**
+ * GET /api/status — Edge route reading pulse worker data from Cloudflare KV.
+ * - config:services — service definitions
+ * - m:{id} — epoch-minute status codes (uptime % + current status)
+ * - daily:{id} — per-UTC-date summaries (tz overlap merged for non-UTC clients)
+ * - ping:{id} — latest response time ms
+ * Query: tzOffset (clamped), brand (filter), currentOnly (fast badges, skip history).
+ */
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,6 +22,7 @@ interface ServicesConfig {
   updatedAt: string;
 }
 
+/** Read a string value from the STATUS_HISTORY KV namespace (edge binding). */
 async function fetchFromKV(key: string): Promise<string | null> {
   const { env } = getRequestContext();
   const kv = (env as unknown as { STATUS_HISTORY: KVNamespace }).STATUS_HISTORY;
@@ -169,6 +178,7 @@ function calculateOverallStatus(statuses: ServiceStatus[]): ServiceStatus {
 }
 
 export async function GET(request: NextRequest) {
+  // tzOffset drives local calendar day boundaries for history and uptime arrays
   const tzParam = request.nextUrl.searchParams.get('tzOffset');
   const tzOffsetMinutes = parseTimezoneOffsetParam(tzParam);
   const brandParam = request.nextUrl.searchParams.get('brand') as BrandId | null;

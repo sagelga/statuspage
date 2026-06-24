@@ -4,170 +4,192 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwind-css)](https://tailwindcss.com)
 
-Real-time status monitoring page for ByteSide.one services — a Thai technology and gaming news platform.
+Real-time status monitoring page for ByteSide.one and sagelga.com services — Thai technology and gaming brands.
 
-![Status Page Preview](./public/img/status-preview.png)
+![ByteSide logo](./public/static/img/logo-large.png)
 
 ## Features
 
-- 🟢 **Real-time Monitoring** — Checks service health with response time tracking
-- 📊 **Status Indicators** — Overall system status (operational, degraded, down)
-- 📅 **30-Day History** — Visual incident history for each service
-- 🌙 **Theme Toggle** — Dark/light mode with system preference detection
-- 🇹🇭 **Thai Language** — Localized interface for Thai users
-- 🔄 **Auto-refresh** — Automatic status updates every minute
+- **Real-time monitoring** — Service health badges with response times from Cloudflare KV
+- **Dual-brand support** — ByteSide.one (5 services) and sagelga.com (7 services) via brand toggle
+- **30-day history** — Daily uptime bars and per-minute mosaic drill-down
+- **Fast initial load** — Three-phase fetch: current badges → brand history → cross-brand cache
+- **Theme toggle** — Light/dark mode with system preference detection
+- **Thai language** — Localized interface (IBM Plex Sans Thai)
+- **Auto-refresh** — Countdown timer refreshes status every minute
 
 ## Monitored Services
 
-| Service | Description |
-|---------|-------------|
-| Cloudflare | CDN & DDoS protection |
-| Website | Main website availability |
-| R2 Content | Image & video hosting |
-| Notion Sync | Content synchronization |
-| Notion | Database availability |
+Services are defined in the **statuspage-pulse** worker and stored in KV (`config:services`). The UI mirrors them in `src/config.ts` for display and brand filtering.
+
+| Brand | Services |
+|-------|----------|
+| ByteSide.one | Cloudflare, Website, R2 Content, Notion Sync, Notion DB |
+| sagelga.com | sagelga.com, Mahjong Hands, Telegram Thai, Docs, Redirect, Static, Learn |
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- npm, yarn, pnpm, or bun
+- npm (or yarn, pnpm, bun)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-org/statuspage.git
 cd statuspage
-
-# Install dependencies
 npm install
 ```
 
 ### Development
 
 ```bash
-# Start development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the status page.
+Open [http://localhost:3000](http://localhost:3000).
 
 ### Production
 
 ```bash
-# Build for production
 npm run build
-
-# Start production server
 npm run start
 ```
 
-### Linting
+### Testing
 
 ```bash
+npm test          # Unit tests (tsx) + Playwright e2e
 npm run lint
+```
+
+### Cloudflare Pages
+
+```bash
+npm run pages:build
+npm run deploy
 ```
 
 ## Configuration
 
-Edit [`src/config.ts`](src/config.ts) to customize:
+Edit [`src/config.ts`](src/config.ts) for UI display metadata (service names, icons, brand lists). Live health checks and KV keys are owned by the **statuspage-pulse** worker — update that worker to add or remove monitored services.
 
 ```typescript
-// Service definitions
-export const SERVICES: ServiceDefinition[] = [
-  {
-    id: 'cloudflare',
-    name: 'เครือข่าย Cloudflare',
-    icon: 'shield',
-    url: 'https://www.cloudflarestatus.com/api/v2/status.json',
-    jsonStatus: { /* ... */ }
-  },
-  // Add more services...
-];
-
-// Thresholds
-export const TIMEOUT_MS = 5000;        // Request timeout
-export const DEGRADED_THRESHOLD_MS = 1500;  // Slow response threshold
+export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = { /* ... */ };
+export const TIMEOUT_MS = 5000;
+export const DEGRADED_THRESHOLD_MS = 1500;
 ```
+
+Query params:
+
+| Param | Purpose |
+|-------|---------|
+| `?brand=sagelga` | Initial brand selection |
+| `?tzOffset=420` | Client timezone offset (minutes east of UTC) |
+| `?currentOnly=true` | Fast path: badges only, no history |
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router
+├── app/
 │   ├── api/
-│   │   ├── status/         # Main status API endpoint
-│   │   └── minutes/        # Minute-level history API
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Main page
+│   │   ├── status/route.ts              # Edge: KV-backed status + history
+│   │   └── minutes/[serviceId]/[date]/  # Edge: 1440 minute cells per day
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx                         # Client: three-phase load + brand switch
 ├── components/
-│   ├── Navbar/             # Navigation
-│   ├── Hero/               # Status hero section
-│   ├── ServiceList/        # Service status cards
-│   ├── IncidentHistory/    # History charts
-│   ├── Footer/             # Footer with theme toggle
-│   └── ...
-├── config.ts               # Service & site configuration
-└── types.ts                # TypeScript definitions
+│   ├── layout/                          # Navbar, Footer (active)
+│   ├── ServiceList/                     # 30-day bars + minute mosaic
+│   ├── Hero/                            # Degraded/down banner
+│   ├── IncidentHistory/
+│   ├── ApiSection/
+│   ├── BrandToggle/
+│   ├── RefreshTimer/
+│   ├── cookies/                         # Consent banner + settings
+│   ├── theme/                           # Theme settings modal
+│   └── ui/                              # BottomSheet
+├── lib/
+│   ├── decode-status.ts                 # KV code → ServiceStatus
+│   ├── date-range.ts                    # 30-day ISO dates + tz helpers
+│   ├── load-status-sequence.ts          # Three-phase client fetch
+│   ├── status-data.ts                   # mergeStatusData
+│   ├── status-api-url.ts                # /api/status URL builder
+│   ├── brand-filter.ts                  # Brand query filtering
+│   └── brand-status.ts                  # History readiness helpers
+├── config.ts
+├── types.ts
+├── hooks/useTheme.tsx
+└── utils/cookies.ts
+tests/
+├── unit/                                # tsx node:test (lib contracts)
+└── e2e/                                 # Playwright
 ```
 
 ## API
 
+Both routes use **Cloudflare Edge runtime** and read from the `STATUS_HISTORY` KV namespace (written by statuspage-pulse).
+
 ### `GET /api/status`
 
-Returns current status of all monitored services.
+| Query | Description |
+|-------|-------------|
+| `tzOffset` | Client offset in minutes (default 0, clamped ±12h) |
+| `brand` | `byteside` or `sagelga` — filter services |
+| `currentOnly` | `true` — skip history/uptime (fast badges) |
 
-**Response:**
+**Response (full):**
 ```json
 {
   "status": "operational",
-  "checkedAt": "2026-03-17T10:00:00.000Z",
-  "services": [
-    {
-      "id": "cloudflare",
-      "name": "เครือข่าย Cloudflare",
-      "status": "operational",
-      "responseTime": 120,
-      "statusCode": 200
-    }
-  ],
-  "history": {
-    "cloudflare": ["operational", "operational", "..."]
-  }
+  "checkedAt": "2026-06-24T10:00:00.000Z",
+  "services": [{ "id": "cloudflare", "status": "operational", "responseTime": 120 }],
+  "history": { "cloudflare": ["operational", "..."] },
+  "dailyUptime": { "cloudflare": [99.5, null, "..."] },
+  "dailyFuncUptime": { "cloudflare": [99.8, null, "..."] }
 }
 ```
 
-## Deployment
+### `GET /api/minutes/[serviceId]/[date]`
 
-### Vercel (Recommended)
+Returns 1440 status codes (one per minute) for a local calendar day. Uses `tzOffset` to map UTC epochs to local minute indices.
 
-```bash
-npm install -g vercel
-vercel deploy
-```
+## Notes
 
-### Docker
+### Shared `lib/` modules
 
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
-```
+| Module | Role |
+|--------|------|
+| `decode-status.ts` | Maps compact KV codes (`o`/`d`/`x`) and full names to `ServiceStatus` |
+| `date-range.ts` | `getLast30IsoDates`, timezone offset parsing, Thai date labels |
+| `load-status-sequence.ts` | Client three-phase load: currentOnly → brand-full → all-full |
+| `status-data.ts` | Merges partial API responses without losing cached history |
+| `status-api-url.ts` | Builds `/api/status` query strings |
+| `brand-filter.ts` | Filters KV service list by `?brand=` param |
+| `brand-status.ts` | Detects when a brand's 30-day history is fully loaded |
+
+### KV key patterns (pulse worker writes, API reads)
+
+| Key | Content |
+|-----|---------|
+| `config:services` | Service definitions JSON |
+| `m:{serviceId}` | Epoch → status code (minute granularity) |
+| `daily:{serviceId}` | Date → daily summary code |
+| `ping:{serviceId}` | Latest response time (ms) |
+
+### Edge runtime
+
+API routes export `runtime = 'edge'` for Cloudflare Pages. KV access uses `@cloudflare/next-on-pages` `getRequestContext()`.
 
 ## Technologies
 
-- [Next.js 16](https://nextjs.org) — React framework
-- [TypeScript](https://typescriptlang.org) — Type safety
-- [Tailwind CSS 4](https://tailwindcss.com) — Styling
-- [IBM Plex Sans Thai](https://fonts.google.com) — Thai font
-- [JetBrains Mono](https://fonts.google.com) — Code font
+- [Next.js 16](https://nextjs.org) — App Router, Edge API routes
+- [TypeScript 5](https://typescriptlang.org)
+- [Tailwind CSS 4](https://tailwindcss.com)
+- [Cloudflare Pages](https://pages.cloudflare.com) + KV
+- IBM Plex Sans Thai + JetBrains Mono
 
 ## License
 
@@ -178,4 +200,3 @@ MIT © ByteSide.one
 - **Website**: [byteside.one](https://byteside.one)
 - **Status**: [status.sagelga.com](https://status.sagelga.com)
 - **Email**: support@byteside.one
-- **Facebook**: [facebook.com/byteside](https://facebook.com/byteside)

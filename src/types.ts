@@ -1,3 +1,8 @@
+/**
+ * Shared TypeScript contracts for API responses, UI components, and lib/ helpers.
+ * Status codes from KV are decoded to ServiceStatus via lib/decode-status.ts.
+ * History arrays are always 30 elements (one per local calendar day); `nodata` fills gaps.
+ */
 export type ServiceStatus = 'operational' | 'degraded' | 'down';
 
 export interface ServiceDefinition {

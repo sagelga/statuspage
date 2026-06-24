@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * Main status page (client component).
+ * - Initial load: three-phase sequence via loadStatusSequence (currentOnly → brand-full → all-full).
+ * - Brand switch: awaits currentOnly before brand-full so badges appear before history bars.
+ * - Merges partial API payloads with mergeStatusData to preserve cached cross-brand history.
+ */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -133,6 +139,7 @@ export default function Home() {
     }
   }, [applyData]);
 
+  // Mount: three-phase load — fast badges, then brand history, then all-brand cache
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -159,6 +166,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // activeBrand changes (incl. URL ?brand=): top up missing services/history for that brand
   useEffect(() => {
     if (!initialLoadDone.current) return;
     const brand = activeBrand;
@@ -179,6 +187,7 @@ export default function Home() {
     window.history.replaceState(null, '', url);
     setActiveBrand(brand);
     setBrandFading(true);
+    // Sequential: currentOnly badges before brand-full history (matches e2e request ordering)
     void (async () => {
       await fetchBrandCurrent(brand);
       await fetchBrandFull(brand);

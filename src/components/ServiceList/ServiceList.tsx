@@ -1,3 +1,7 @@
+/**
+ * ServiceList — per-service status cards with 30-day uptime bars and expandable minute mosaic.
+ * Date labels and ISO keys come from @/lib/date-range (shared with API routes for tz alignment).
+ */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { RefreshTimer } from '../RefreshTimer/RefreshTimer';
 import { ServiceResult, ServiceStatus, ServiceDefinition } from '../../types';

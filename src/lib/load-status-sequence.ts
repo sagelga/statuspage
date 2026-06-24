@@ -1,22 +1,34 @@
+/**
+ * Client-side three-phase status load: fast badges → brand history → cross-brand cache.
+ */
 import type { BrandId } from '@/config';
 import type { CurrentStatusResponse, StatusResponse } from '@/types';
 import { getTimezoneOffsetMinutes } from './date-range';
 import { buildStatusApiUrl } from './status-api-url';
 import { mergeStatusData } from './status-data';
 
+/** Injectable fetch for tests and page.tsx. */
 export type StatusFetch = (url: string) => Promise<Response>;
 
+/** Options for the initial or refresh load sequence. */
 export interface LoadStatusSequenceOptions {
   brand: BrandId;
   fetch: StatusFetch;
+  /** When false, skip the fast currentOnly request (manual refresh path). */
   withPriority?: boolean;
+  /** Read latest merged state before each merge (typically a ref getter). */
   getCurrent: () => StatusResponse | null;
+  /** Called after each successful phase with merged data. */
   onUpdate: (data: StatusResponse) => void;
 }
 
 /**
- * Three-phase load: fast current badges → full history for active brand → full all brands.
- * Current and brand-full responses merge in; all-brands full merges last for cross-brand cache.
+ * Run the three-phase load sequence against /api/status.
+ * 1. currentOnly — badges appear quickly (history omitted).
+ * 2. brand-full — 30-day history for the active brand.
+ * 3. all-full — full cross-brand payload for instant tab switches.
+ * Each phase merges into prior state via mergeStatusData.
+ * @returns Flags indicating which phases returned OK responses
  */
 export async function loadStatusSequence({
   brand,

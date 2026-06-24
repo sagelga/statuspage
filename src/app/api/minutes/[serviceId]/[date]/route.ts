@@ -1,3 +1,9 @@
+/**
+ * GET /api/minutes/[serviceId]/[date] — Edge route returning 1440 minute-level status cells.
+ * Reads epoch-keyed codes from KV `m:{serviceId}` and maps them to local minute indices
+ * using tzOffset. Codes are decoded via lib/decode-status decodeStatus.
+ * Missing KV or out-of-range epochs yield `nodata` placeholders.
+ */
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,6 +26,7 @@ export async function GET(
     const kv = (env as unknown as { STATUS_HISTORY: KVNamespace }).STATUS_HISTORY;
     if (!kv) return NextResponse.json(new Array(1440).fill('nodata'));
 
+    // tzOffset aligns UTC epoch keys to the user's local calendar day
     const tzParam = request.nextUrl.searchParams.get('tzOffset');
     const tzOffsetMinutes = parseTimezoneOffsetParam(tzParam);
     const tzOffsetSec = tzOffsetMinutes * 60;
@@ -29,7 +36,7 @@ export async function GET(
 
     const all: Record<string, string> = JSON.parse(raw);
 
-    // Epoch range for this local date: local midnight in UTC ± 1 day
+    // Local midnight for `date` expressed as UTC epoch bounds (86400s window)
     const localDayStart = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000) - tzOffsetSec;
     const localDayEnd = localDayStart + 86400;
 
@@ -39,6 +46,7 @@ export async function GET(
       if (epoch >= localDayStart && epoch < localDayEnd) {
         const idx = Math.floor((epoch - localDayStart) / 60);
         if (idx >= 0 && idx < 1440) {
+          // compact KV code → ServiceStatus | nodata
           minutes[idx] = decodeStatus(code);
         }
       }

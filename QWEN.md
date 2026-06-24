@@ -1,181 +1,160 @@
-# ByteSide.one Status Page
+# ByteSide.one Status Page — QWEN Context
 
 ## Project Overview
 
-This is a **Next.js 16** status page application for ByteSide.one, a Thai technology and gaming news website. The application provides real-time monitoring and display of service statuses for various infrastructure components including Cloudflare, website, image hosting, and Notion integration.
+Next.js 16 status page for **ByteSide.one** and **sagelga.com**. Displays real-time service health, 30-day uptime bars, and per-minute incident mosaics. Data is read from Cloudflare KV (written by the separate **statuspage-pulse** worker), not fetched live from external endpoints on each page view.
 
 ### Key Features
-- Real-time service status checking with response time monitoring
-- Overall system status calculation (operational, degraded, down)
-- 30-day incident history tracking
-- Dark/light theme toggle with system preference detection
-- Thai language interface
-- RESTful API for status data
+
+- Dual-brand toggle (ByteSide / sagelga) with URL `?brand=` support
+- Three-phase client load for fast badges before full history
+- 30-day daily bars + 1440-cell minute mosaic per service/day
+- Thai UI, light/dark theme, cookie consent, auto-refresh timer
+- Edge API routes (`runtime = 'edge'`) backed by KV
 
 ## Tech Stack
 
 | Category | Technology |
 |----------|------------|
-| Framework | Next.js 16.1.6 (App Router) |
+| Framework | Next.js 16.2 (App Router) |
+| Runtime | Cloudflare Pages (Edge) |
 | Language | TypeScript 5 |
-| UI Library | React 19.2.3 |
-| Styling | Tailwind CSS 4 |
-| Linting | ESLint 9 + eslint-config-next |
+| UI | React 19 |
+| Styling | Tailwind CSS 4 + component CSS |
+| Storage | Cloudflare KV (`STATUS_HISTORY`) |
+| Testing | Node `node:test` (tsx) + Playwright |
 
 ## Project Structure
 
 ```
 statuspage/
 ├── src/
-│   ├── app/                    # Next.js App Router
+│   ├── app/
 │   │   ├── api/
-│   │   │   ├── status/         # GET /api/status - Main status endpoint
-│   │   │   └── minutes/        # GET /api/minutes/[serviceId] - Minute history
-│   │   ├── layout.tsx          # Root layout with Thai language & fonts
-│   │   ├── page.tsx            # Main status page component
-│   │   └── globals.css         # Global styles with CSS variables
+│   │   │   ├── status/route.ts           # GET /api/status (edge, KV)
+│   │   │   └── minutes/[serviceId]/[date]/route.ts
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx                      # Client shell + load sequence
 │   ├── components/
-│   │   ├── Navbar/             # Navigation bar
-│   │   ├── Hero/               # Status hero section
-│   │   ├── ServiceList/        # Service status list display
-│   │   ├── IncidentHistory/    # 30-day incident history
-│   │   ├── ApiSection/         # API documentation
-│   │   ├── Footer/             # Footer with theme toggle
-│   │   ├── RefreshTimer/       # Auto-refresh timer
-│   │   ├── Icons.ts            # Icon components (Lucide-style)
-│   │   ├── ServiceChecker.ts   # Service health checking logic
-│   │   └── HistoryManager.ts   # History data management
-│   ├── config.ts               # Service definitions & thresholds
-│   ├── types.ts                # TypeScript type definitions
-│   └── App.css                 # Additional app styles
-├── public/                     # Static assets
-├── package.json
-├── tsconfig.json               # TypeScript config with path aliases (@/*)
-├── next.config.ts              # Next.js configuration
-├── eslint.config.mjs           # ESLint configuration
-└── postcss.config.mjs          # PostCSS with Tailwind
+│   │   ├── layout/                       # Navbar.tsx, Footer.tsx (active)
+│   │   ├── ServiceList/                  # Bars, mosaic, refresh timer hook-in
+│   │   ├── Hero/
+│   │   ├── IncidentHistory/
+│   │   ├── ApiSection/
+│   │   ├── BrandToggle/
+│   │   ├── RefreshTimer/
+│   │   ├── cookies/
+│   │   ├── theme/
+│   │   ├── ui/
+│   │   └── Icons.ts
+│   ├── lib/                              # Shared logic (see Notes)
+│   ├── config.ts                         # SERVICES_BY_BRAND (display only)
+│   ├── types.ts
+│   ├── hooks/useTheme.tsx
+│   └── utils/cookies.ts
+├── tests/
+│   ├── unit/                             # brand-filter, status-data, load-status-sequence, etc.
+│   └── e2e/                              # Playwright (status-page, fast-load-evidence, …)
+├── public/static/img/                    # Logos and assets
+├── wrangler.toml
+└── package.json
 ```
+
+Removed legacy paths (do not reference): `components/Navbar/`, `components/Footer/`, `components/ThemeToggle/`, `ServiceChecker.ts`, `HistoryManager.ts`, `App.css`.
 
 ## Building and Running
 
-### Development
 ```bash
-npm run dev
-```
-Starts the development server at `http://localhost:3000`
-
-### Production Build
-```bash
-npm run build    # Build for production
-npm run start    # Start production server
-```
-
-### Linting
-```bash
-npm run lint     # Run ESLint
+npm run dev       # http://localhost:3000
+npm run build
+npm run start
+npm test          # unit + playwright
+npm run lint
+npm run pages:build   # Cloudflare adapter
+npm run deploy
 ```
 
 ## Configuration
 
-### Service Definitions (`src/config.ts`)
+### `src/config.ts`
 
-Services are configured in the `SERVICES` array with the following structure:
+- `SERVICES_BY_BRAND` — UI display metadata per brand (names, icons, endpoint URLs for tooltips)
+- `BRANDS` — Brand labels and Thai descriptions
+- `TIMEOUT_MS`, `DEGRADED_THRESHOLD_MS` — Used by pulse worker thresholds (documented here for reference)
 
-```typescript
-{
-  id: string,           // Unique identifier
-  name: string,         // Display name (Thai)
-  icon: string,         // Icon name from Icons.ts
-  url: string,          // Health check endpoint
-  jsonStatus?: {        // Optional: JSON response parsing
-    path: string,       // Dot-notation path to status field
-    map: Record<string, ServiceStatus>
-  }
-}
-```
+**Important:** Service health is **not** checked in this repo at runtime. The pulse worker writes results to KV; this app reads KV via `/api/status`.
 
-### Thresholds
-- **Timeout**: 5000ms (5 seconds)
-- **Degraded**: Response time > 1500ms
+### Environment
 
-### Site Config
-- **Name**: ByteSide.one
-- **URL**: https://status.sagelga.com
-- **Brand Color**: #52006A
-- **Contact**: support@byteside.one
+KV binding `STATUS_HISTORY` is configured in `wrangler.toml` for Cloudflare Pages.
 
 ## Type Definitions (`src/types.ts`)
 
 ```typescript
 ServiceStatus = 'operational' | 'degraded' | 'down'
 
-ServiceDefinition {
-  id, name, icon, url, jsonStatus?
-}
-
-ServiceResult {
-  id, name, icon, status, responseTime, statusCode
-}
-
 StatusResponse {
-  status, checkedAt, services, history
+  status, checkedAt, services,
+  history: Record<serviceId, (ServiceStatus | 'nodata')[]>,  // 30 days
+  dailyUptime?, dailyFuncUptime?   // per-day % arrays
 }
+
+CurrentStatusResponse  // fast path: services only, history may be {}
 ```
 
-## Development Conventions
+## Testing
 
-### TypeScript
-- Strict mode enabled
-- Path alias `@/*` maps to `./src/*`
-- No emit (Next.js handles compilation)
+| Suite | Command | Coverage |
+|-------|---------|----------|
+| Unit | `node --import tsx --test tests/unit/*.test.ts` | `lib/` merge, brand filter, load sequence, API URL |
+| E2E | `npx playwright test` | Page load, brand switch, mosaic hover, loading states |
 
-### Code Style
-- ESLint with `eslint-config-next` (Next.js recommended rules)
-- Tailwind CSS 4 for styling
-- Functional React components with hooks
-- ES modules syntax
-
-### Component Patterns
-- Client components use `'use client'` directive
-- Server components for API routes
-- Props interfaces defined separately or inline
-- Icons imported from centralized `Icons.ts`
-
-### Testing
-No test framework configured. Consider adding Jest/React Testing Library for future testing needs.
+Run both via `npm test`.
 
 ## API Endpoints
 
 ### `GET /api/status`
-Returns current status of all services.
 
-**Response:**
-```json
-{
-  "status": "operational",
-  "checkedAt": "2026-03-17T10:00:00.000Z",
-  "services": [
-    {
-      "id": "cloudflare",
-      "name": "เครือข่าย Cloudflare",
-      "icon": "shield",
-      "status": "operational",
-      "responseTime": 120,
-      "statusCode": 200
-    }
-  ],
-  "history": {
-    "cloudflare": ["operational", "operational", ...]
-  }
-}
-```
+Query: `tzOffset`, `brand`, `currentOnly`. Reads `config:services`, `m:{id}`, `daily:{id}`, `ping:{id}` from KV. Uses `decodeStatus` from `lib/decode-status.ts` and `getLast30IsoDates` from `lib/date-range.ts` for tz-aware history.
 
-### `GET /api/minutes/[serviceId]`
-Returns minute-by-minute history for a specific service.
+### `GET /api/minutes/[serviceId]/[date]`
+
+Returns 1440-element array. Maps KV epoch keys to local minute indices using `tzOffset`.
 
 ## Notes
 
-- History management uses mock implementations (in-memory arrays)
-- Theme preference stored in localStorage
-- Auto-refresh mechanism via RefreshTimer component
-- Google Fonts: IBM Plex Sans Thai (UI) + JetBrains Mono (code)
+### `lib/` deduplication
+
+| File | Exports |
+|------|---------|
+| `decode-status.ts` | `decodeStatus(code)`, `STATUS_PRIORITY` for daily tz overlap |
+| `date-range.ts` | `getTimezoneOffsetMinutes`, `getLast30IsoDates`, `getLast30DateLabels`, `parseTimezoneOffsetParam` |
+| `load-status-sequence.ts` | `loadStatusSequence` — currentOnly → brand-full → all-full |
+| `status-data.ts` | `mergeStatusData` — preserves history when fast payload omits it |
+| `status-api-url.ts` | `buildStatusApiUrl` |
+| `brand-filter.ts` | `filterServiceDefinitions`, `isValidBrandParam` |
+| `brand-status.ts` | `brandHasHistory`, `countLoadedForBrand` |
+
+### Three-phase load sequence
+
+1. **currentOnly** — Badges + response times appear quickly (`history: {}`).
+2. **brand-full** — 30-day history for active brand.
+3. **all-full** — Cross-brand cache for instant tab switches.
+
+Implemented in `load-status-sequence.ts`; `page.tsx` calls it on mount and re-fetches on brand change (current before full).
+
+### Timezone handling
+
+- Client sends `tzOffset` (minutes east of UTC) on every API call.
+- `getLast30IsoDates` builds local calendar days from that offset.
+- Non-UTC daily history merges two UTC date keys and picks worst status via `STATUS_PRIORITY`.
+
+### Theme & cookies
+
+- Theme: `localStorage` key `theme-preference` via `useTheme` hook.
+- Cookies: `cookie-preferences` key; consent banner in `components/cookies/`.
+
+### Fonts
+
+IBM Plex Sans Thai (UI), JetBrains Mono (metrics) — loaded in `layout.tsx`.
