@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { brandHasHistory, countLoadedForBrand } from '../../src/lib/brand-status';
+import { brandHasHistory, countLoadedForBrand, serviceHasHistory } from '../../src/lib/brand-status';
 import type { CurrentStatusResponse, StatusResponse } from '../../src/types';
 import { SERVICES_BY_BRAND } from '../../src/config';
 
@@ -21,6 +21,11 @@ describe('brand-status helpers (shipped)', () => {
     };
     assert.equal(countLoadedForBrand(current, 'sagelga'), 7);
     assert.equal(countLoadedForBrand(current, 'byteside'), 0);
+  });
+
+  it('serviceHasHistory checks per-service 30-day arrays', () => {
+    assert.equal(serviceHasHistory({}, 'cloudflare'), false);
+    assert.equal(serviceHasHistory({ cloudflare: new Array(30).fill('operational') }, 'cloudflare'), true);
   });
 
   it('brandHasHistory is false for CurrentStatusResponse and true after brand full merge', () => {

@@ -1,5 +1,5 @@
 import { SERVICES_BY_BRAND, type BrandId } from '@/config';
-import type { StatusResponse } from '@/types';
+import type { ServiceStatus, StatusResponse } from '@/types';
 
 export function countLoadedForBrand(data: StatusResponse | null, brand: BrandId): number {
   if (!data?.services) return 0;
@@ -7,7 +7,14 @@ export function countLoadedForBrand(data: StatusResponse | null, brand: BrandId)
   return data.services.filter((s) => brandIds.has(s.id)).length;
 }
 
+export function serviceHasHistory(
+  history: Record<string, (ServiceStatus | 'nodata')[]> | undefined,
+  serviceId: string,
+): boolean {
+  return (history?.[serviceId]?.length ?? 0) === 30;
+}
+
 export function brandHasHistory(data: StatusResponse | null, brand: BrandId): boolean {
   if (!data?.history) return false;
-  return SERVICES_BY_BRAND[brand].every((s) => (data.history[s.id]?.length ?? 0) === 30);
+  return SERVICES_BY_BRAND[brand].every((s) => serviceHasHistory(data.history, s.id));
 }

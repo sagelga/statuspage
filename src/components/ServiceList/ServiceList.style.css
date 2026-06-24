@@ -40,7 +40,35 @@
 .uptime-label { display: none; }
 .uptime-hint { font-size: 0.68rem; color: var(--text-muted); opacity: 0.8; font-weight: 400; letter-spacing: 0.01em; }
 
-.section-title-row { display: flex; align-items: center; gap: 0.65rem; }
+.section-title-row { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.history-loading-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.history-loading-hint .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 
 /* Info button + tooltip */
 .info-btn-wrap { position: relative; }

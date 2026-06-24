@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { RefreshTimer } from '../RefreshTimer/RefreshTimer';
 import { ServiceResult, ServiceStatus, ServiceDefinition } from '../../types';
 import { Icons, StatusLabels } from '../Icons';
+import { serviceHasHistory } from '@/lib/brand-status';
 import './ServiceList.style.css';
 
 interface ServiceListProps {
@@ -12,6 +13,7 @@ interface ServiceListProps {
   dailyUptime?: Record<string, (number | null)[]>;
   /** (operational + degraded) / total — service was responding, even if slow */
   dailyFuncUptime?: Record<string, (number | null)[]>;
+  historyLoading?: boolean;
   onRefresh?: () => void;
 }
 
@@ -32,6 +34,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
   history,
   dailyUptime,
   dailyFuncUptime,
+  historyLoading = false,
   onRefresh,
 }) => {
   const [expanded, setExpanded] = useState<ExpandedState | null>(null);
@@ -208,6 +211,12 @@ export const ServiceList: React.FC<ServiceListProps> = ({
       <div className="section-header">
         <div className="section-title-row">
           <h2 className="section-title">บริการ</h2>
+          {historyLoading && (
+            <p className="history-loading-hint" aria-live="polite">
+              <span className="dot" aria-hidden="true" />
+              กำลังโหลดประวัติ 30 วัน…
+            </p>
+          )}
         </div>
         <RefreshTimer lastUpdated={checkedAt} refreshInterval={60} onRefresh={onRefresh} />
       </div>
@@ -217,6 +226,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
           const isLoaded = loaded !== undefined;
           const isExpanded = isLoaded && expanded?.serviceId === def.id;
           const svcHistory = isLoaded ? history?.[def.id] : undefined;
+          const historyReady = serviceHasHistory(history, def.id);
+          const barsHistoryLoading = isLoaded && historyLoading && !historyReady;
           const pct = isExpanded && expanded ? calculateUptimePct(expanded.minutes) : null;
           const pctNum = pct !== null ? parseFloat(pct) : null;
           const pctColor = pctNum === null ? 'var(--text-muted)'
@@ -256,10 +267,23 @@ export const ServiceList: React.FC<ServiceListProps> = ({
               </div>
 
               <div className="uptime-row" onMouseLeave={() => isLoaded && handleRowLeave(def.id)}>
-                <div className={`uptime-bars${!isLoaded ? ' loading' : ''}${isExpanded ? ' has-selection' : ''}`}>
+                <div
+                  className={`uptime-bars${!isLoaded ? ' loading' : ''}${barsHistoryLoading ? ' history-loading' : ''}${isExpanded ? ' has-selection' : ''}`}
+                  aria-busy={barsHistoryLoading || !isLoaded}
+                >
+                  {barsHistoryLoading && (
+                    <span className="sr-only">กำลังโหลดประวัติ 30 วัน</span>
+                  )}
                   {Array.from({ length: 30 }).map((_, i) => {
-                    if (!isLoaded) {
-                      return <div key={i} className="uptime-bar loading" title={DATE_STRS[i]} />;
+                    if (!isLoaded || barsHistoryLoading) {
+                      const showTodayStatus = barsHistoryLoading && i === 29;
+                      return (
+                        <div
+                          key={i}
+                          className={showTodayStatus ? `uptime-bar ${loaded!.status}` : 'uptime-bar loading'}
+                          title={DATE_STRS[i]}
+                        />
+                      );
                     }
                     const st = (svcHistory && svcHistory[i] && svcHistory[i] !== 'nodata')
                       ? svcHistory[i]

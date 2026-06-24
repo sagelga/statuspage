@@ -193,6 +193,7 @@ export default function Home() {
     : brandServices.some(s => s.status === 'degraded') ? 'degraded'
     : 'operational';
   const activeBrandMeta = BRANDS.find(b => b.id === activeBrand)!;
+  const historyLoading = data !== null && !brandHasHistory(data, activeBrand);
 
   return (
     <main>
@@ -225,6 +226,7 @@ export default function Home() {
           history={data?.history}
           dailyUptime={data?.dailyUptime}
           dailyFuncUptime={data?.dailyFuncUptime}
+          historyLoading={historyLoading}
           onRefresh={loadFullStatus}
         />
 

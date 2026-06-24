@@ -257,9 +257,10 @@ test.describe('Status Page — service list', () => {
     await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
 
     await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible({ timeout: 2000 });
-    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).not.toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
 
     await pom.waitForServicesLoaded();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.operational').first()).toBeVisible();
     await expect(pom.serviceRows).toHaveCount(7);
   });
 
