@@ -1,15 +1,26 @@
-import { StatusResponse } from '@/types';
+import type { CurrentStatusResponse, StatusResponse } from '@/types';
 
 function hasRecordKeys<T>(record: Record<string, T> | undefined): record is Record<string, T> {
   return record !== undefined && Object.keys(record).length > 0;
 }
 
-/** Merge a partial status payload into existing data (fast current before full history). */
+function toStatusResponse(incoming: StatusResponse | CurrentStatusResponse): StatusResponse {
+  return {
+    status: incoming.status,
+    checkedAt: incoming.checkedAt,
+    services: incoming.services,
+    history: incoming.history ?? {},
+    dailyUptime: incoming.dailyUptime,
+    dailyFuncUptime: incoming.dailyFuncUptime,
+  };
+}
+
+/** Merge a partial or full payload into existing data (fast current before full history). */
 export function mergeStatusData(
   prev: StatusResponse | null,
-  incoming: StatusResponse,
+  incoming: StatusResponse | CurrentStatusResponse,
 ): StatusResponse {
-  if (!prev) return incoming;
+  if (!prev) return toStatusResponse(incoming);
 
   const serviceMap = new Map(prev.services.map((s) => [s.id, s]));
   for (const s of incoming.services) {

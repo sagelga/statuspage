@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { mergeStatusData } from '../../src/lib/status-data';
 import { SERVICES_BY_BRAND } from '../../src/config';
-import type { StatusResponse } from '../../src/types';
+import type { CurrentStatusResponse, StatusResponse } from '../../src/types';
 
 function buildPartial(brand: 'byteside' | 'sagelga'): StatusResponse {
   const defs = SERVICES_BY_BRAND[brand];
@@ -40,9 +40,9 @@ describe('mergeStatusData (shipped)', () => {
     assert.equal(merged.services.length, 7);
   });
 
-  it('preserves prior history when incoming is current-only (empty history)', () => {
+  it('preserves prior history when incoming is CurrentStatusResponse (empty history)', () => {
     const byteside = buildPartial('byteside');
-    const currentOnly: StatusResponse = {
+    const currentOnly: CurrentStatusResponse = {
       status: 'degraded',
       checkedAt: '2026-01-01T00:02:00.000Z',
       services: byteside.services.map((s, i) =>

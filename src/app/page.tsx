@@ -8,8 +8,9 @@ import { ServiceList } from '@/components/ServiceList/ServiceList';
 import { IncidentHistory } from '@/components/IncidentHistory/IncidentHistory';
 import { ApiSection } from '@/components/ApiSection/ApiSection';
 import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
-import { StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
+import type { CurrentStatusResponse, StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
+import { brandHasHistory, countLoadedForBrand } from '@/lib/brand-status';
 import { mergeStatusData } from '@/lib/status-data';
 import { loadStatusSequence } from '@/lib/load-status-sequence';
 import { buildStatusApiUrl } from '@/lib/status-api-url';
@@ -63,12 +64,6 @@ function getInitialBrand(): BrandId {
   return 'byteside';
 }
 
-function countLoadedForBrand(data: StatusResponse | null, brand: BrandId): number {
-  if (!data?.services) return 0;
-  const brandIds = new Set(SERVICES_BY_BRAND[brand].map((s) => s.id));
-  return data.services.filter((s) => brandIds.has(s.id)).length;
-}
-
 export default function Home() {
   const [data, setData] = useState<StatusResponse | null>(null);
   const [error, setError] = useState(false);
@@ -102,11 +97,25 @@ export default function Home() {
       const url = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
       const currentRes = await fetch(url);
       if (currentRes.ok) {
-        const currentJson: StatusResponse = await currentRes.json();
+        const currentJson: CurrentStatusResponse = await currentRes.json();
         applyData(mergeStatusData(dataRef.current, currentJson));
       }
     } catch (err) {
       console.error('Current status fetch failed:', err);
+    }
+  }, [applyData]);
+
+  const fetchBrandFull = useCallback(async (brand: BrandId) => {
+    const tz = -new Date().getTimezoneOffset();
+    try {
+      const url = buildStatusApiUrl({ tzOffset: tz, brand });
+      const fullRes = await fetch(url);
+      if (fullRes.ok) {
+        const fullJson: StatusResponse = await fullRes.json();
+        applyData(mergeStatusData(dataRef.current, fullJson));
+      }
+    } catch (err) {
+      console.error('Brand full status fetch failed:', err);
     }
   }, [applyData]);
 
@@ -155,18 +164,20 @@ export default function Home() {
     if (countLoadedForBrand(dataRef.current, activeBrand) < expected) {
       fetchBrandCurrent(activeBrand);
     }
-  }, [activeBrand, fetchBrandCurrent]);
+    if (!brandHasHistory(dataRef.current, activeBrand)) {
+      fetchBrandFull(activeBrand);
+    }
+  }, [activeBrand, fetchBrandCurrent, fetchBrandFull]);
 
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
     const url = brand === 'byteside' ? window.location.pathname : `${window.location.pathname}?brand=${brand}`;
     window.history.replaceState(null, '', url);
+    setActiveBrand(brand);
     setBrandFading(true);
-    fetchBrandCurrent(brand);
-    setTimeout(() => {
-      setActiveBrand(brand);
-      setBrandFading(false);
-    }, 160);
+    void fetchBrandCurrent(brand);
+    void fetchBrandFull(brand);
+    setTimeout(() => setBrandFading(false), 160);
   };
 
   const visibleServices = SERVICES_BY_BRAND[activeBrand];

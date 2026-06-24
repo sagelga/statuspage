@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { BrandId } from '@/config';
 import { filterServiceDefinitions, isValidBrandParam } from '@/lib/brand-filter';
-import type { ServiceDefinition } from '@/types';
-import { StatusResponse, ServiceStatus } from '@/types';
+import type { CurrentStatusResponse, ServiceDefinition, StatusResponse } from '@/types';
+import { ServiceStatus } from '@/types';
 
 interface ServicesConfig {
   services: ServiceDefinition[];
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      const data: StatusResponse = {
+      const data: CurrentStatusResponse = {
         status: calculateOverallStatus(currentStatuses.map(s => s.status)),
         checkedAt: now.toISOString(),
         services: currentStatuses,

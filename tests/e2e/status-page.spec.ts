@@ -133,7 +133,7 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
-  test('sagelga fast current-only fetch is requested before full fetch on mount', async ({ page }) => {
+  test('sagelga fast current-only fetch is requested before brand-full then all-full on mount', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     const requestOrder: string[] = [];
@@ -149,6 +149,8 @@ test.describe('Status Page — service list', () => {
       const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
       const body = currentOnly && brand === 'sagelga'
         ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
         : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
@@ -165,12 +167,62 @@ test.describe('Status Page — service list', () => {
       const p = new URL(u).searchParams;
       return p.get('brand') === 'sagelga' && p.get('currentOnly') === 'true';
     });
-    const fullIdx = requestOrder.findIndex((u) => {
+    const brandFullIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return p.get('brand') === 'sagelga' && !p.has('currentOnly');
+    });
+    const allFullIdx = requestOrder.findIndex((u) => {
       const p = new URL(u).searchParams;
       return !p.has('brand') && !p.has('currentOnly');
     });
     expect(currentIdx).toBeGreaterThanOrEqual(0);
-    expect(fullIdx).toBeGreaterThan(currentIdx);
+    expect(brandFullIdx).toBeGreaterThan(currentIdx);
+    expect(allFullIdx).toBeGreaterThan(brandFullIdx);
+  });
+
+  test('brand toggle click shows sagelga badges from currentOnly before delayed brand-full', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+    await grantCookieConsent(page);
+
+    await page.route('**/api/status**', async (route) => {
+      const url = new URL(route.request().url());
+      const brand = url.searchParams.get('brand');
+      const currentOnly = url.searchParams.get('currentOnly') === 'true';
+      let delay = 0;
+      if (currentOnly && brand === 'sagelga') delay = 250;
+      else if (brand === 'sagelga') delay = 2000;
+      else if (currentOnly && brand === 'byteside') delay = 100;
+      else delay = 500;
+      await new Promise((r) => setTimeout(r, delay));
+
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : currentOnly && brand === 'byteside'
+        ? { ...MOCK_STATUS_BYTESIDE, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
+        : brand === 'byteside'
+        ? MOCK_STATUS_BYTESIDE
+        : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/');
+    await pom.waitForServicesLoaded();
+
+    await page.getByRole('tab', { name: 'sagelga.com' }).click();
+    await expect(pom.serviceRows).toHaveCount(7);
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+
+    const sagelgaRow = pom.serviceRows.filter({ has: page.locator('.component-name', { hasText: 'sagelga.com' }) });
+    await expect(sagelgaRow.locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+    await expect(sagelgaRow.locator('.badge')).not.toHaveClass(/loading/);
   });
 
   test('sagelga brand shows badges from fast current fetch before full history arrives', async ({ page }) => {
@@ -180,11 +232,15 @@ test.describe('Status Page — service list', () => {
       const url = new URL(route.request().url());
       const brand = url.searchParams.get('brand');
       const currentOnly = url.searchParams.get('currentOnly') === 'true';
-      const delay = currentOnly && brand === 'sagelga' ? 300 : 2500;
+      let delay = 2500;
+      if (currentOnly && brand === 'sagelga') delay = 300;
+      else if (brand === 'sagelga') delay = 800;
       await new Promise((r) => setTimeout(r, delay));
       const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
       const body = currentOnly && brand === 'sagelga'
         ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
         : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
