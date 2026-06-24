@@ -84,6 +84,11 @@ a:hover { color: var(--brand-dark); }
 @keyframes breathe  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @keyframes urgent   { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
 @keyframes badge-in { from { opacity: 0; transform: scale(0.75); } to { opacity: 1; transform: scale(1); } }
+@keyframes data-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bar-fill-in {
+  from { opacity: 0; transform: scaleY(0.35); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
 @keyframes refresh-flash { 0% { opacity: 1; } 40% { opacity: 0.3; transform: scale(0.92); } 100% { opacity: 1; transform: scale(1); } }
 
 /* ----- Reduced motion ----- */
@@ -119,6 +124,7 @@ a:hover { color: var(--brand-dark); }
   color: var(--gray);
 }
 .badge.loading .dot { background: var(--gray); animation: pulse 1.5s infinite; }
+.badge.status-loaded { animation: badge-in 0.4s var(--ease-out-expo) both; }
 .badge.down .dot { animation: urgent 0.9s ease-in-out infinite; }
 .badge.operational { background: var(--ok-bg); color: var(--ok-text); }
 .badge.operational .dot { background: var(--ok); }
@@ -163,6 +169,17 @@ a:hover { color: var(--brand-dark); }
 .uptime-bar.operational { background: var(--ok); }
 .uptime-bar.degraded { background: var(--warn); }
 .uptime-bar.down { background: var(--err); }
+.uptime-bar.status-loaded {
+  animation: bar-fill-in 0.35s var(--ease-out-expo) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+.uptime-bars.bars-loaded .uptime-bar:not(.loading) {
+  animation: bar-fill-in 0.38s var(--ease-out-expo) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+.uptime-bars.bars-loaded .uptime-bar.selected {
+  animation: bar-lock-pop 0.22s var(--ease-out-expo) both;
+}
 .uptime-bar.loading {
   --skeleton-base: var(--gray-bg);
   --skeleton-highlight: color-mix(in srgb, var(--gray-bg) 50%, var(--text-muted));
@@ -223,6 +240,9 @@ a:hover { color: var(--brand-dark); }
   font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
   background: rgba(0,0,0,0.07); padding: 0.15rem 0.4rem; border-radius: 6px;
   font-variant-numeric: tabular-nums;
+}
+.response-time.data-loaded {
+  animation: data-in 0.35s var(--ease-out-quart) both;
 }
 .response-time.loading {
   display: inline-block;

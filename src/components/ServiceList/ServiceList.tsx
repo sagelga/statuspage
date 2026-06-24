@@ -157,7 +157,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
   }, [expanded]);
 
   const makeBadge = (status: ServiceStatus) => (
-    <span className={`badge ${status}`}>
+    <span className={`badge status-loaded ${status}`}>
       <span className="dot"></span>
       {StatusLabels[status] || status}
     </span>
@@ -236,7 +236,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
             : 'var(--err-text)';
 
           return (
-            <div key={def.id} className={`component-row${isLoaded ? ` status-${loaded.status}` : ' loading'}`}>
+            <div key={def.id} className={`component-row${isLoaded ? ` loaded status-${loaded.status}` : ' loading'}`}>
               <div className="component-top">
                 <span className="component-icon" dangerouslySetInnerHTML={{ __html: Icons[def.icon as keyof typeof Icons] || '' }}></span>
                 <span className="component-name">{def.name}</span>
@@ -259,16 +259,20 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                 )}
                 <div className="component-meta">
                   {isLoaded && loaded.responseTime !== null && (
-                    <span className="response-time">{loaded.responseTime} ms</span>
+                    <span key={`rt-${loaded.responseTime}`} className="response-time data-loaded">
+                      {loaded.responseTime} ms
+                    </span>
                   )}
                   {!isLoaded && <span className="response-time loading" aria-hidden="true">&nbsp;</span>}
-                  {isLoaded ? makeBadge(loaded.status) : makeLoadingBadge()}
+                  {isLoaded ? (
+                    <span key={`badge-${loaded.status}-${loaded.responseTime}`}>{makeBadge(loaded.status)}</span>
+                  ) : makeLoadingBadge()}
                 </div>
               </div>
 
               <div className="uptime-row" onMouseLeave={() => isLoaded && handleRowLeave(def.id)}>
                 <div
-                  className={`uptime-bars${!isLoaded ? ' loading' : ''}${barsHistoryLoading ? ' history-loading' : ''}${isExpanded ? ' has-selection' : ''}`}
+                  className={`uptime-bars${!isLoaded ? ' loading' : ''}${barsHistoryLoading ? ' history-loading' : ''}${isLoaded && !barsHistoryLoading ? ' bars-loaded' : ''}${isExpanded ? ' has-selection' : ''}`}
                   aria-busy={barsHistoryLoading || !isLoaded}
                 >
                   {barsHistoryLoading && (
@@ -280,7 +284,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                       return (
                         <div
                           key={i}
-                          className={showTodayStatus ? `uptime-bar ${loaded!.status}` : 'uptime-bar loading'}
+                          className={showTodayStatus ? `uptime-bar status-loaded ${loaded!.status}` : 'uptime-bar loading'}
+                          style={showTodayStatus ? { '--bar-delay': '0ms' } as React.CSSProperties : undefined}
                           title={DATE_STRS[i]}
                         />
                       );
@@ -301,6 +306,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                       <div
                         key={i}
                         className={`uptime-bar ${effectiveSt}${isSelected ? ' selected' : ''}`}
+                        style={{ '--bar-delay': `${i * 14}ms` } as React.CSSProperties}
                         onMouseEnter={() => handleBarHover(def.id, i, DATE_ISO[i], DATE_STRS[i])}
                         onClick={() => handleBarClick(def.id, i, DATE_ISO[i], DATE_STRS[i])}
                         title={DATE_STRS[i]}

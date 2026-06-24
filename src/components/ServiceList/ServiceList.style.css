@@ -21,6 +21,13 @@
 .component-row.loading .component-name { color: var(--text); }
 .component-row.loading .component-icon { opacity: 0.7; }
 .component-row.loading:hover { background: transparent; }
+.component-row.loaded .component-icon {
+  animation: data-in 0.35s var(--ease-out-quart) both;
+}
+.component-row.loaded.status-degraded .component-icon,
+.component-row.loaded.status-down .component-icon {
+  animation: data-in 0.35s var(--ease-out-quart) both;
+}
 .component-row:hover { background: rgba(82,0,106,0.04); }
 :root.dark-theme .component-row:hover { background: rgba(255,255,255,0.03); }
 @media (prefers-color-scheme: dark) { :root:not(.light-theme) .component-row:hover { background: rgba(255,255,255,0.03); } }
@@ -56,6 +63,9 @@
   border-radius: 50%;
   background: var(--text-muted);
   animation: pulse 1.5s ease-in-out infinite;
+}
+.history-loaded-flash {
+  animation: data-in 0.4s var(--ease-out-quart) both;
 }
 .sr-only {
   position: absolute;
