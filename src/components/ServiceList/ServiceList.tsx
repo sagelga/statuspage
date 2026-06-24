@@ -3,6 +3,12 @@ import { RefreshTimer } from '../RefreshTimer/RefreshTimer';
 import { ServiceResult, ServiceStatus, ServiceDefinition } from '../../types';
 import { Icons, StatusLabels } from '../Icons';
 import { serviceHasHistory } from '@/lib/brand-status';
+import {
+  formatTimezoneLabel,
+  getLast30DateLabels,
+  getLast30IsoDates,
+  getTimezoneOffsetMinutes,
+} from '@/lib/date-range';
 import './ServiceList.style.css';
 
 interface ServiceListProps {
@@ -63,40 +69,10 @@ export const ServiceList: React.FC<ServiceListProps> = ({
     return () => document.removeEventListener('click', close);
   }, [openTooltip]);
 
-  // User's local timezone offset in minutes (positive = UTC+, e.g. UTC+7 → 420)
-  const tzOffsetMinutes = React.useMemo(() => -new Date().getTimezoneOffset(), []);
-  const tzLabel = React.useMemo(() => {
-    const sign = tzOffsetMinutes >= 0 ? '+' : '-';
-    const h = String(Math.floor(Math.abs(tzOffsetMinutes) / 60)).padStart(2, '0');
-    const m = String(Math.abs(tzOffsetMinutes) % 60).padStart(2, '0');
-    return `UTC${sign}${h}:${m}`;
-  }, [tzOffsetMinutes]);
-
-  const DATE_ISO = React.useMemo(() => {
-    const arr = [];
-    const now = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      // Use local date components (not UTC) so dates match the user's timezone
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      arr.push(`${yyyy}-${mm}-${dd}`);
-    }
-    return arr;
-  }, []);
-
-  const DATE_STRS = React.useMemo(() => {
-    const arr = [];
-    const today = Date.now();
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      arr.push(d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }));
-    }
-    return arr;
-  }, []);
+  const tzOffsetMinutes = React.useMemo(() => getTimezoneOffsetMinutes(), []);
+  const tzLabel = React.useMemo(() => formatTimezoneLabel(tzOffsetMinutes), [tzOffsetMinutes]);
+  const DATE_ISO = React.useMemo(() => getLast30IsoDates(tzOffsetMinutes), [tzOffsetMinutes]);
+  const DATE_STRS = React.useMemo(() => getLast30DateLabels(tzOffsetMinutes, 'th-TH'), [tzOffsetMinutes]);
 
   // Shared fetch + show logic — stable ref, no expanded dependency
   const fetchAndShow = useCallback(async (
@@ -113,7 +89,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
     setExpanded({ serviceId: svcId, dayIndex, dateStr, label, minutes: new Array(1440).fill('nodata'), loading: true, locked });
 
     try {
-      const tz = -new Date().getTimezoneOffset();
+      const tz = getTimezoneOffsetMinutes();
       const res = await fetch(`/api/minutes/${svcId}/${dateStr}?tzOffset=${tz}`);
       if (!res.ok) throw new Error('Failed to fetch');
       const raw = await res.json();

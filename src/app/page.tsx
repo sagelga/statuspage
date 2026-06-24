@@ -13,6 +13,7 @@ import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
 import { brandHasHistory, countLoadedForBrand } from '@/lib/brand-status';
 import { mergeStatusData } from '@/lib/status-data';
 import { loadStatusSequence } from '@/lib/load-status-sequence';
+import { getTimezoneOffsetMinutes } from '@/lib/date-range';
 import { buildStatusApiUrl } from '@/lib/status-api-url';
 
 const jsonLd = {
@@ -92,7 +93,7 @@ export default function Home() {
   }, []);
 
   const fetchBrandCurrent = useCallback(async (brand: BrandId) => {
-    const tz = -new Date().getTimezoneOffset();
+    const tz = getTimezoneOffsetMinutes();
     try {
       const url = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
       const currentRes = await fetch(url);
@@ -106,7 +107,7 @@ export default function Home() {
   }, [applyData]);
 
   const fetchBrandFull = useCallback(async (brand: BrandId) => {
-    const tz = -new Date().getTimezoneOffset();
+    const tz = getTimezoneOffsetMinutes();
     try {
       const url = buildStatusApiUrl({ tzOffset: tz, brand });
       const fullRes = await fetch(url);
@@ -120,7 +121,7 @@ export default function Home() {
   }, [applyData]);
 
   const loadFullStatus = useCallback(async () => {
-    const tz = -new Date().getTimezoneOffset();
+    const tz = getTimezoneOffsetMinutes();
     try {
       const response = await fetch(`/api/status?tzOffset=${tz}`);
       if (!response.ok) throw new Error('Failed to fetch');
@@ -160,13 +161,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!initialLoadDone.current) return;
-    const expected = SERVICES_BY_BRAND[activeBrand].length;
-    if (countLoadedForBrand(dataRef.current, activeBrand) < expected) {
-      fetchBrandCurrent(activeBrand);
-    }
-    if (!brandHasHistory(dataRef.current, activeBrand)) {
-      fetchBrandFull(activeBrand);
-    }
+    const brand = activeBrand;
+    const expected = SERVICES_BY_BRAND[brand].length;
+    void (async () => {
+      if (countLoadedForBrand(dataRef.current, brand) < expected) {
+        await fetchBrandCurrent(brand);
+      }
+      if (!brandHasHistory(dataRef.current, brand)) {
+        await fetchBrandFull(brand);
+      }
+    })();
   }, [activeBrand, fetchBrandCurrent, fetchBrandFull]);
 
   const handleBrandChange = (brand: BrandId) => {
@@ -175,8 +179,10 @@ export default function Home() {
     window.history.replaceState(null, '', url);
     setActiveBrand(brand);
     setBrandFading(true);
-    void fetchBrandCurrent(brand);
-    void fetchBrandFull(brand);
+    void (async () => {
+      await fetchBrandCurrent(brand);
+      await fetchBrandFull(brand);
+    })();
     setTimeout(() => setBrandFading(false), 160);
   };
 

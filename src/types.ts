@@ -28,14 +28,6 @@ export interface StatusResponse {
 export type CurrentStatusResponse = Pick<StatusResponse, 'status' | 'checkedAt' | 'services'> &
   Partial<Pick<StatusResponse, 'history' | 'dailyUptime' | 'dailyFuncUptime'>>;
 
-export interface HistoryMeta {
-  services: Record<string, ServiceStatus>;
-}
-
-export interface Env {
-  STATUS_HISTORY?: unknown;
-}
-
 // Theme and Cookie types
 export interface NavItem {
   label: string;

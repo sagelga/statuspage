@@ -1,5 +1,6 @@
 import type { BrandId } from '@/config';
 import type { CurrentStatusResponse, StatusResponse } from '@/types';
+import { getTimezoneOffsetMinutes } from './date-range';
 import { buildStatusApiUrl } from './status-api-url';
 import { mergeStatusData } from './status-data';
 
@@ -24,7 +25,7 @@ export async function loadStatusSequence({
   getCurrent,
   onUpdate,
 }: LoadStatusSequenceOptions): Promise<{ hadPriority: boolean; hadBrandFull: boolean; hadFull: boolean }> {
-  const tz = -new Date().getTimezoneOffset();
+  const tz = getTimezoneOffsetMinutes();
   let hadPriority = false;
   let hadBrandFull = false;
   let hadFull = false;

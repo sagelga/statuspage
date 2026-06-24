@@ -4,37 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { BrandId } from '@/config';
 import { filterServiceDefinitions, isValidBrandParam } from '@/lib/brand-filter';
+import { decodeStatus, STATUS_PRIORITY } from '@/lib/decode-status';
+import { getLast30IsoDates, parseTimezoneOffsetParam } from '@/lib/date-range';
 import type { CurrentStatusResponse, ServiceDefinition, StatusResponse } from '@/types';
 import { ServiceStatus } from '@/types';
 
 interface ServicesConfig {
   services: ServiceDefinition[];
   updatedAt: string;
-}
-
-const STATUS_PRIORITY: Record<string, number> = {
-  x: 2, down: 2,
-  d: 1, degraded: 1,
-  o: 0, operational: 0,
-  nodata: -1,
-};
-
-function decodeStatus(code: string): ServiceStatus | 'nodata' {
-  if (code === 'o' || code === 'operational') return 'operational';
-  if (code === 'd' || code === 'degraded') return 'degraded';
-  if (code === 'x' || code === 'down') return 'down';
-  return 'nodata';
-}
-
-function getLast30Dates(tzOffsetMinutes: number): string[] {
-  const dates: string[] = [];
-  const nowLocal = Date.now() + tzOffsetMinutes * 60000;
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(nowLocal);
-    d.setUTCDate(d.getUTCDate() - i);
-    dates.push(d.toISOString().slice(0, 10));
-  }
-  return dates;
 }
 
 async function fetchFromKV(key: string): Promise<string | null> {
@@ -56,7 +33,7 @@ async function fetchFromKV(key: string): Promise<string | null> {
 async function readDailyUptimePct(
   serviceId: string, tzOffsetMinutes: number
 ): Promise<{ opPct: (number | null)[]; funcPct: (number | null)[] }> {
-  const dates = getLast30Dates(tzOffsetMinutes);
+  const dates = getLast30IsoDates(tzOffsetMinutes);
   const empty = { opPct: new Array(30).fill(null), funcPct: new Array(30).fill(null) };
   const raw = await fetchFromKV(`m:${serviceId}`);
   if (!raw) return empty;
@@ -95,7 +72,7 @@ async function readDailyUptimePct(
 
 // Reads 30-day daily summary from the compact daily:{serviceId} key
 async function readDailyHistory(serviceId: string, tzOffsetMinutes: number): Promise<(ServiceStatus | 'nodata')[]> {
-  const dates = getLast30Dates(tzOffsetMinutes);
+  const dates = getLast30IsoDates(tzOffsetMinutes);
   const raw = await fetchFromKV(`daily:${serviceId}`);
   if (!raw) return new Array(30).fill('nodata');
   try {
@@ -193,7 +170,7 @@ function calculateOverallStatus(statuses: ServiceStatus[]): ServiceStatus {
 
 export async function GET(request: NextRequest) {
   const tzParam = request.nextUrl.searchParams.get('tzOffset');
-  const tzOffsetMinutes = Math.max(-720, Math.min(840, parseInt(tzParam ?? '0', 10) || 0));
+  const tzOffsetMinutes = parseTimezoneOffsetParam(tzParam);
   const brandParam = request.nextUrl.searchParams.get('brand') as BrandId | null;
   const now = new Date();
   try {

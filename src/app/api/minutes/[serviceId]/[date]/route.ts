@@ -2,14 +2,9 @@ export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
+import { decodeStatus } from '@/lib/decode-status';
+import { parseTimezoneOffsetParam } from '@/lib/date-range';
 import type { ServiceStatus } from '@/types';
-
-function decodeStatus(code: string): ServiceStatus | 'nodata' {
-  if (code === 'o' || code === 'operational') return 'operational';
-  if (code === 'd' || code === 'degraded') return 'degraded';
-  if (code === 'x' || code === 'down') return 'down';
-  return 'nodata';
-}
 
 export async function GET(
   request: NextRequest,
@@ -26,7 +21,7 @@ export async function GET(
     if (!kv) return NextResponse.json(new Array(1440).fill('nodata'));
 
     const tzParam = request.nextUrl.searchParams.get('tzOffset');
-    const tzOffsetMinutes = Math.max(-720, Math.min(840, parseInt(tzParam ?? '0', 10) || 0));
+    const tzOffsetMinutes = parseTimezoneOffsetParam(tzParam);
     const tzOffsetSec = tzOffsetMinutes * 60;
 
     const raw = await kv.get(`m:${serviceId}`);
