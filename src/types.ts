@@ -24,6 +24,10 @@ export interface StatusResponse {
   dailyFuncUptime?: Record<string, (number | null)[]>;
 }
 
+/** Fast-path payload: current badges only — history/uptime may be empty or omitted. */
+export type CurrentStatusResponse = Pick<StatusResponse, 'status' | 'checkedAt' | 'services'> &
+  Partial<Pick<StatusResponse, 'history' | 'dailyUptime' | 'dailyFuncUptime'>>;
+
 export interface HistoryMeta {
   services: Record<string, ServiceStatus>;
 }

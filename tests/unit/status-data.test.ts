@@ -39,4 +39,21 @@ describe('mergeStatusData (shipped)', () => {
     const merged = mergeStatusData(null, sagelga);
     assert.equal(merged.services.length, 7);
   });
+
+  it('preserves prior history when incoming is current-only (empty history)', () => {
+    const byteside = buildPartial('byteside');
+    const currentOnly: StatusResponse = {
+      status: 'degraded',
+      checkedAt: '2026-01-01T00:02:00.000Z',
+      services: byteside.services.map((s, i) =>
+        i === 0 ? { ...s, status: 'degraded', responseTime: 900 } : s,
+      ),
+      history: {},
+    };
+    const merged = mergeStatusData(byteside, currentOnly);
+    assert.equal(merged.services[0].status, 'degraded');
+    assert.equal(merged.services[0].responseTime, 900);
+    assert.ok(merged.history!['cloudflare']);
+    assert.equal(merged.history!['cloudflare'].length, 30);
+  });
 });

@@ -12,6 +12,7 @@ import { StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
 import { mergeStatusData } from '@/lib/status-data';
 import { loadStatusSequence } from '@/lib/load-status-sequence';
+import { buildStatusApiUrl } from '@/lib/status-api-url';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -95,16 +96,17 @@ export default function Home() {
     setError(false);
   }, []);
 
-  const fetchBrandPriority = useCallback(async (brand: BrandId) => {
+  const fetchBrandCurrent = useCallback(async (brand: BrandId) => {
     const tz = -new Date().getTimezoneOffset();
     try {
-      const priorityRes = await fetch(`/api/status?brand=${brand}&tzOffset=${tz}`);
-      if (priorityRes.ok) {
-        const priorityJson: StatusResponse = await priorityRes.json();
-        applyData(mergeStatusData(dataRef.current, priorityJson));
+      const url = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
+      const currentRes = await fetch(url);
+      if (currentRes.ok) {
+        const currentJson: StatusResponse = await currentRes.json();
+        applyData(mergeStatusData(dataRef.current, currentJson));
       }
     } catch (err) {
-      console.error('Priority fetch failed:', err);
+      console.error('Current status fetch failed:', err);
     }
   }, [applyData]);
 
@@ -151,15 +153,16 @@ export default function Home() {
     if (!initialLoadDone.current) return;
     const expected = SERVICES_BY_BRAND[activeBrand].length;
     if (countLoadedForBrand(dataRef.current, activeBrand) < expected) {
-      fetchBrandPriority(activeBrand);
+      fetchBrandCurrent(activeBrand);
     }
-  }, [activeBrand, fetchBrandPriority]);
+  }, [activeBrand, fetchBrandCurrent]);
 
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
     const url = brand === 'byteside' ? window.location.pathname : `${window.location.pathname}?brand=${brand}`;
     window.history.replaceState(null, '', url);
     setBrandFading(true);
+    fetchBrandCurrent(brand);
     setTimeout(() => {
       setActiveBrand(brand);
       setBrandFading(false);

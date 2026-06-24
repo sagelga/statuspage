@@ -1,5 +1,6 @@
 import type { BrandId } from '@/config';
 import type { StatusResponse } from '@/types';
+import { buildStatusApiUrl } from './status-api-url';
 import { mergeStatusData } from './status-data';
 
 export type StatusFetch = (url: string) => Promise<Response>;
@@ -13,8 +14,8 @@ export interface LoadStatusSequenceOptions {
 }
 
 /**
- * Fetch active-brand data first (?brand=), then the full unfiltered payload.
- * Priority response is merged; full response replaces as last-writer-wins.
+ * Fetch fast current-status for the active brand first, then the full payload.
+ * Current-only response is merged for badges; full response replaces as last-writer-wins.
  */
 export async function loadStatusSequence({
   brand,
@@ -28,7 +29,8 @@ export async function loadStatusSequence({
   let hadFull = false;
 
   if (withPriority) {
-    const priorityRes = await fetchFn(`/api/status?brand=${brand}&tzOffset=${tz}`);
+    const currentUrl = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
+    const priorityRes = await fetchFn(currentUrl);
     if (priorityRes.ok) {
       const priorityJson: StatusResponse = await priorityRes.json();
       onUpdate(mergeStatusData(getCurrent(), priorityJson));
@@ -36,7 +38,8 @@ export async function loadStatusSequence({
     }
   }
 
-  const fullRes = await fetchFn(`/api/status?tzOffset=${tz}`);
+  const fullUrl = buildStatusApiUrl({ tzOffset: tz });
+  const fullRes = await fetchFn(fullUrl);
   if (fullRes.ok) {
     const fullJson: StatusResponse = await fullRes.json();
     onUpdate(fullJson);

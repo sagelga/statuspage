@@ -67,10 +67,28 @@ export const MOCK_MINUTES: ('operational' | 'nodata')[] = [
   ...new Array(900).fill('operational'),
 ];
 
+function buildCurrentOnly(base: StatusResponse): StatusResponse {
+  return {
+    status: base.status,
+    checkedAt: base.checkedAt,
+    services: base.services,
+    history: {},
+  };
+}
+
 function resolveStatusBody(url: string, statusOverride?: StatusResponse): string {
   const parsed = new URL(url);
   const brand = parsed.searchParams.get('brand') as BrandId | null;
-  if (statusOverride) return JSON.stringify(statusOverride);
+  const currentOnly = parsed.searchParams.get('currentOnly') === 'true';
+
+  if (statusOverride) {
+    return JSON.stringify(currentOnly ? buildCurrentOnly(statusOverride) : statusOverride);
+  }
+  if (currentOnly) {
+    if (brand === 'sagelga') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_SAGELGA));
+    if (brand === 'byteside') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_BYTESIDE));
+    return JSON.stringify(buildCurrentOnly(MOCK_STATUS_FULL));
+  }
   if (brand === 'sagelga') return JSON.stringify(MOCK_STATUS_SAGELGA);
   if (brand === 'byteside') return JSON.stringify(MOCK_STATUS_BYTESIDE);
   return JSON.stringify(MOCK_STATUS_FULL);

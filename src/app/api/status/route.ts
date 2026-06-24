@@ -226,6 +226,33 @@ export async function GET(request: NextRequest) {
       console.log(`[API] brand filter=${brandParam} services=${servicesToUse.length}/${services.length}`);
     }
 
+    const currentOnly = request.nextUrl.searchParams.get('currentOnly') === 'true';
+
+    if (currentOnly) {
+      const currentStatuses = await Promise.all(
+        servicesToUse.map(async (svc) => {
+          const [currentStatus, pingRaw] = await Promise.all([
+            getCurrentStatus(svc.id),
+            fetchFromKV(`ping:${svc.id}`),
+          ]);
+          const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
+          return { ...svc, status: currentStatus, responseTime, statusCode: null };
+        })
+      );
+
+      const data: StatusResponse = {
+        status: calculateOverallStatus(currentStatuses.map(s => s.status)),
+        checkedAt: now.toISOString(),
+        services: currentStatuses,
+        history: {},
+      };
+
+      console.log(`[API] currentOnly brand=${brandParam ?? 'all'} services=${currentStatuses.length}`);
+      return NextResponse.json(data, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
+
     const history: Record<string, (ServiceStatus | 'nodata')[]> = {};
     const dailyUptime: Record<string, (number | null)[]> = {};
     const dailyFuncUptime: Record<string, (number | null)[]> = {};

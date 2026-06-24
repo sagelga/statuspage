@@ -133,7 +133,7 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
-  test('sagelga brand-filtered fetch is requested before full fetch on mount', async ({ page }) => {
+  test('sagelga fast current-only fetch is requested before full fetch on mount', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     const requestOrder: string[] = [];
@@ -141,11 +141,15 @@ test.describe('Status Page — service list', () => {
     await page.route('**/api/status**', async (route) => {
       const url = route.request().url();
       requestOrder.push(url);
-      const brand = new URL(url).searchParams.get('brand');
-      const delay = brand === 'sagelga' ? 150 : 0;
+      const parsed = new URL(url);
+      const brand = parsed.searchParams.get('brand');
+      const currentOnly = parsed.searchParams.get('currentOnly') === 'true';
+      const delay = currentOnly && brand === 'sagelga' ? 150 : 0;
       await new Promise((r) => setTimeout(r, delay));
       const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
-      const body = brand === 'sagelga' ? MOCK_STATUS_SAGELGA : MOCK_STATUS_FULL;
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -157,22 +161,31 @@ test.describe('Status Page — service list', () => {
     await pom.goto('/?brand=sagelga');
     await pom.waitForServicesLoaded();
 
-    const brandIdx = requestOrder.findIndex((u) => u.includes('brand=sagelga'));
-    const fullIdx = requestOrder.findIndex((u) => !new URL(u).searchParams.has('brand'));
-    expect(brandIdx).toBeGreaterThanOrEqual(0);
-    expect(fullIdx).toBeGreaterThan(brandIdx);
+    const currentIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return p.get('brand') === 'sagelga' && p.get('currentOnly') === 'true';
+    });
+    const fullIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return !p.has('brand') && !p.has('currentOnly');
+    });
+    expect(currentIdx).toBeGreaterThanOrEqual(0);
+    expect(fullIdx).toBeGreaterThan(currentIdx);
   });
 
-  test('sagelga brand shows 7 names with loading placeholders before full API resolves', async ({ page }) => {
+  test('sagelga brand shows badges from fast current fetch before full history arrives', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     await page.route('**/api/status**', async (route) => {
       const url = new URL(route.request().url());
       const brand = url.searchParams.get('brand');
-      const delay = brand === 'sagelga' ? 300 : 2500;
+      const currentOnly = url.searchParams.get('currentOnly') === 'true';
+      const delay = currentOnly && brand === 'sagelga' ? 300 : 2500;
       await new Promise((r) => setTimeout(r, delay));
       const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
-      const body = brand === 'sagelga' ? MOCK_STATUS_SAGELGA : MOCK_STATUS_FULL;
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -186,11 +199,12 @@ test.describe('Status Page — service list', () => {
     await expect(pom.serviceRows).toHaveCount(7, { timeout: 5000 });
     await expect(pom.serviceRows.locator('.component-name', { hasText: 'sagelga.com' })).toBeVisible();
     await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
-    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
+
+    await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).not.toBeVisible();
 
     await pom.waitForServicesLoaded();
     await expect(pom.serviceRows).toHaveCount(7);
-    await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible();
   });
 
   test('service names appear immediately while API is pending', async ({ page }) => {

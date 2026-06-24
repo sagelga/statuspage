@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { loadStatusSequence } from '../../src/lib/load-status-sequence';
 import type { StatusResponse } from '../../src/types';
 
-const SAGELGA_PARTIAL: StatusResponse = {
+const SAGELGA_CURRENT: StatusResponse = {
   status: 'operational',
   checkedAt: '2026-01-01T00:00:00.000Z',
   services: [{ id: 'sagelga-super', name: 'sagelga.com', icon: 'globe', status: 'operational', responseTime: 100, statusCode: 200 }],
-  history: { 'sagelga-super': new Array(30).fill('operational') },
+  history: {},
 };
 
 const FULL: StatusResponse = {
@@ -24,16 +24,16 @@ const FULL: StatusResponse = {
 };
 
 describe('loadStatusSequence (shipped)', () => {
-  it('calls brand-filtered fetch before unfiltered fetch on initial load', async () => {
+  it('calls fast current-only brand fetch before unfiltered full fetch on initial load', async () => {
     const urls: string[] = [];
     let current: StatusResponse | null = null;
     const updates: StatusResponse[] = [];
 
     const mockFetch = async (url: string) => {
       urls.push(url);
-      if (url.includes('brand=sagelga')) {
+      if (url.includes('currentOnly=true') && url.includes('brand=sagelga')) {
         await new Promise((r) => setTimeout(r, 50));
-        return new Response(JSON.stringify(SAGELGA_PARTIAL), { status: 200 });
+        return new Response(JSON.stringify(SAGELGA_CURRENT), { status: 200 });
       }
       return new Response(JSON.stringify(FULL), { status: 200 });
     };
@@ -51,13 +51,16 @@ describe('loadStatusSequence (shipped)', () => {
 
     assert.equal(urls.length, 2);
     assert.match(urls[0], /brand=sagelga/);
+    assert.match(urls[0], /currentOnly=true/);
     assert.doesNotMatch(urls[0], /brand=byteside/);
     assert.match(urls[1], /\/api\/status\?tzOffset=/);
     assert.doesNotMatch(urls[1], /brand=/);
+    assert.doesNotMatch(urls[1], /currentOnly=true/);
     assert.equal(result.hadPriority, true);
     assert.equal(result.hadFull, true);
     assert.equal(updates.length, 2);
     assert.equal(updates[0].services.length, 1);
+    assert.equal(updates[0].services[0].status, 'operational');
     assert.equal(updates[1].services.length, 2);
   });
 
