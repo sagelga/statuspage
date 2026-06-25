@@ -49,16 +49,18 @@ export const metadata: Metadata = {
 import { IBM_Plex_Sans_Thai, JetBrains_Mono } from "next/font/google";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["thai", "latin"],
   display: "swap",
+  preload: false,
   variable: "--font-ibm-plex-sans-thai",
 });
 
 const jetBrainsMono = JetBrains_Mono({
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
   subsets: ["latin"],
   display: "swap",
+  preload: false,
   variable: "--font-jetbrains-mono",
 });
 
