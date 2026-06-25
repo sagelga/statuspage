@@ -15,11 +15,16 @@ function buildMockForBrand(brand: BrandId): StatusResponse {
   const history = Object.fromEntries(
     services.map((s) => [s.id, new Array(30).fill('operational')]),
   );
+  const uptime = [...new Array(29).fill(98), 99];
+  const dailyUptime = Object.fromEntries(services.map((s) => [s.id, uptime]));
+  const dailyFuncUptime = Object.fromEntries(services.map((s) => [s.id, uptime]));
   return {
     status: 'operational',
     checkedAt: new Date(Date.now() - 10_000).toISOString(),
     services,
     history,
+    dailyUptime,
+    dailyFuncUptime,
   };
 }
 

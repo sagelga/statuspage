@@ -40,3 +40,12 @@ export function brandHasHistory(data: StatusResponse | null, brand: BrandId): bo
   if (!data?.history) return false;
   return SERVICES_BY_BRAND[brand].every((s) => serviceHasHistory(data.history, s.id));
 }
+
+/** True when today's uptime slot (index 29) has live minute-derived data for every service in the brand. */
+export function brandHasTodayData(data: StatusResponse | null, brand: BrandId): boolean {
+  if (!data) return false;
+  return SERVICES_BY_BRAND[brand].every((s) => {
+    const op = data.dailyUptime?.[s.id]?.[29];
+    return op !== null && op !== undefined;
+  });
+}

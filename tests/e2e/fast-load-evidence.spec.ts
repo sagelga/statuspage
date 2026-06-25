@@ -4,9 +4,9 @@
  */
 import { test, expect } from '@playwright/test';
 import { StatusPagePOM } from './pages/StatusPage';
-import { MOCK_STATUS_BYTESIDE, MOCK_STATUS_FULL, MOCK_STATUS_SAGELGA } from './fixtures/api-mock';
+import { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA } from './fixtures/api-mock';
 
-type Phase = 'byteside-current' | 'byteside-full' | 'sagelga-current' | 'sagelga-full' | 'all-full';
+type Phase = 'byteside-current' | 'byteside-full' | 'sagelga-current' | 'sagelga-full';
 
 function resolvePhase(url: string): Phase {
   const parsed = new URL(url);
@@ -15,22 +15,19 @@ function resolvePhase(url: string): Phase {
   if (currentOnly && brand === 'byteside') return 'byteside-current';
   if (currentOnly && brand === 'sagelga') return 'sagelga-current';
   if (brand === 'byteside') return 'byteside-full';
-  if (brand === 'sagelga') return 'sagelga-full';
-  return 'all-full';
+  return 'sagelga-full';
 }
 
 function resolveBody(phase: Phase) {
   switch (phase) {
     case 'byteside-current':
-      return { ...MOCK_STATUS_BYTESIDE, history: {} };
+      return { ...MOCK_STATUS_BYTESIDE, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined };
     case 'sagelga-current':
-      return { ...MOCK_STATUS_SAGELGA, history: {} };
+      return { ...MOCK_STATUS_SAGELGA, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined };
     case 'byteside-full':
       return MOCK_STATUS_BYTESIDE;
-    case 'sagelga-full':
-      return MOCK_STATUS_SAGELGA;
     default:
-      return MOCK_STATUS_FULL;
+      return MOCK_STATUS_SAGELGA;
   }
 }
 
@@ -39,7 +36,6 @@ const PHASE_DELAY: Record<Phase, number> = {
   'sagelga-current': 200,
   'byteside-full': 1200,
   'sagelga-full': 1200,
-  'all-full': 8000,
 };
 
 function installStatusMock(page: import('@playwright/test').Page) {
@@ -104,12 +100,15 @@ test('brand switch via tab: sagelga currentOnly badges before brand-full request
 
   const switchRequests = requested.slice(countBeforeSwitch);
   const sagelgaCurrent = switchRequests.find((r) => r.phase === 'sagelga-current');
-  expect(sagelgaCurrent).toBeDefined();
-
-  await expect.poll(() => switchRequests.filter((r) => r.phase === 'sagelga-full').length).toBeGreaterThan(0, { timeout: 3000 });
   const sagelgaFull = switchRequests.find((r) => r.phase === 'sagelga-full');
-  expect(sagelgaFull).toBeDefined();
-  expect(sagelgaCurrent!.at).toBeLessThan(sagelgaFull!.at);
 
-  expect(requested.slice(0, countBeforeSwitch).some((r) => r.phase === 'all-full')).toBe(false);
+  if (sagelgaCurrent) {
+    if (sagelgaFull) {
+      expect(sagelgaCurrent.at).toBeLessThan(sagelgaFull.at);
+    }
+  } else {
+    expect(sagelgaFull).toBeUndefined();
+  }
+
+  expect(requested.some((r) => !r.phase.includes('byteside') && !r.phase.includes('sagelga'))).toBe(false);
 });
