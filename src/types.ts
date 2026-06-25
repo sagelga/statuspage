@@ -1,3 +1,8 @@
+/**
+ * Shared TypeScript contracts for API responses, UI components, and lib/ helpers.
+ * Status codes from KV are decoded to ServiceStatus via lib/decode-status.ts.
+ * History arrays are always 30 elements (one per local calendar day); `nodata` fills gaps.
+ */
 export type ServiceStatus = 'operational' | 'degraded' | 'down';
 
 export interface ServiceDefinition {
@@ -19,12 +24,43 @@ export interface StatusResponse {
   checkedAt: string;
   services: ServiceResult[];
   history: Record<string, (ServiceStatus | 'nodata')[]>;
+  dailyUptime?: Record<string, (number | null)[]>;
+  /** (operational + degraded) / total — service was responding, even if slow */
+  dailyFuncUptime?: Record<string, (number | null)[]>;
 }
 
-export interface HistoryMeta {
-  services: Record<string, ServiceStatus>;
+/** Fast-path payload: current badges only — history/uptime may be empty or omitted. */
+export type CurrentStatusResponse = Pick<StatusResponse, 'status' | 'checkedAt' | 'services'> &
+  Partial<Pick<StatusResponse, 'history' | 'dailyUptime' | 'dailyFuncUptime'>>;
+
+// Theme and Cookie types
+export interface NavItem {
+  label: string;
+  href: string;
+  external?: boolean;
+  children?: NavItem[];
+  disabled?: boolean;
 }
 
-export interface Env {
-  STATUS_HISTORY?: unknown;
+export interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
 }
+
+export interface FooterColumn {
+  title: string;
+  links: FooterLink[];
+}
+
+export type Theme = "light" | "dark" | "system";
+
+export interface CookiePreferences {
+  functional: boolean;
+  analytics: boolean;
+  consentGiven: boolean;
+  consentTimestamp: number | null;
+}
+
+export const COOKIE_STORAGE_KEY = "cookie-preferences";
+export const THEME_STORAGE_KEY = "theme-preference";

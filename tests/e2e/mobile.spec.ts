@@ -28,15 +28,14 @@ test.describe('Mobile — page renders correctly at 390px', () => {
     await expect(pom.navbar).toBeVisible();
   });
 
-  test('hero banner is visible and not clipped on mobile', async ({ page }) => {
+  test('about blurb is visible and not clipped on mobile', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.heroBanner).toBeVisible();
+    await expect(pom.aboutBlurb).toBeVisible();
 
-    // Banner should be fully inside the viewport horizontally
-    const box = await pom.heroBanner.boundingBox();
+    const box = await pom.aboutBlurb.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(MOBILE_VIEWPORT.width + 1); // +1 for rounding
+    expect(box!.x + box!.width).toBeLessThanOrEqual(MOBILE_VIEWPORT.width + 1);
   });
 
   test('service rows are visible and not overflowing on mobile', async ({ page }) => {
@@ -66,19 +65,16 @@ test.describe('Mobile — page renders correctly at 390px', () => {
     await expect(pom.footer).toBeVisible();
   });
 
-  test('theme toggle button is reachable on mobile', async ({ page }) => {
+  test('theme settings button is reachable on mobile', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    await expect(pom.themeToggleBtn).toBeVisible();
+    await pom.themeSettingsBtn.scrollIntoViewIfNeeded();
+    await expect(pom.themeSettingsBtn).toBeVisible();
   });
 
-  test('theme can be toggled on mobile', async ({ page }) => {
+  test('theme can be changed on mobile', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await pom.themeToggleBtn.scrollIntoViewIfNeeded();
-    const before = await pom.getThemeClass();
-    await pom.clickThemeToggle();
-    const after = await pom.getThemeClass();
-    expect(after).not.toBe(before);
+    await pom.selectTheme('Dark');
+    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
   test('no horizontal scrollbar appears on mobile', async ({ page }) => {
@@ -113,13 +109,13 @@ test.describe('Mobile — narrow viewport (375px, iPhone SE)', () => {
     expect(bodyWidth).toBeLessThanOrEqual(377);
   });
 
-  test('hero title is legible (min font-size 14px) on narrow viewport', async ({ page }) => {
+  test('service names are legible (min font-size 14px) on narrow viewport', async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
     await pom.goto();
-    await pom.waitForStatusLoaded();
+    await pom.waitForServicesLoaded();
 
-    const fontSize = await pom.heroTitle.evaluate(
+    const fontSize = await pom.serviceRows.first().locator('.component-name').evaluate(
       (el) => parseFloat(window.getComputedStyle(el).fontSize)
     );
     expect(fontSize).toBeGreaterThanOrEqual(14);

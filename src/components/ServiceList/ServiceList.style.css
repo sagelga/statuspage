@@ -17,10 +17,22 @@
 .component-row:nth-child(8) { animation-delay: 350ms; }
 .component-row:last-child { border-bottom: none; }
 .component-row { transition: background 0.18s var(--ease-out-quart); }
+.component-row.loading { opacity: 0.92; animation: none; }
+.component-row.loading .component-name { color: var(--text); }
+.component-row.loading .component-icon { opacity: 0.7; }
+.component-row.loading:hover { background: transparent; }
+.component-row.loaded .component-icon {
+  animation: data-in 0.35s var(--ease-out-quart) both;
+}
+.component-row.loaded.status-degraded .component-icon,
+.component-row.loaded.status-down .component-icon {
+  animation: data-in 0.35s var(--ease-out-quart) both;
+}
 .component-row:hover { background: rgba(82,0,106,0.04); }
 :root.dark-theme .component-row:hover { background: rgba(255,255,255,0.03); }
 @media (prefers-color-scheme: dark) { :root:not(.light-theme) .component-row:hover { background: rgba(255,255,255,0.03); } }
 :root.sagelga-brand .component-row:hover { background: rgba(201,148,58,0.06); }
+:root.sagelga-brand .component-row.loading:hover { background: transparent; }
 
 .component-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
 .component-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted); transition: color 0.2s ease; }
@@ -35,7 +47,38 @@
 .uptime-label { display: none; }
 .uptime-hint { font-size: 0.68rem; color: var(--text-muted); opacity: 0.8; font-weight: 400; letter-spacing: 0.01em; }
 
-.section-title-row { display: flex; align-items: center; gap: 0.65rem; }
+.section-title-row { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.history-loading-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.history-loading-hint .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.history-loaded-flash {
+  animation: data-in 0.4s var(--ease-out-quart) both;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 
 /* Info button + tooltip */
 .info-btn-wrap { position: relative; }

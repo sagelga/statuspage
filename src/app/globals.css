@@ -75,11 +75,20 @@ a:hover { color: var(--brand-dark); }
 /* ----- Keyframes ----- */
 @keyframes pulse    { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes shimmer  { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes skeleton-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 @keyframes spin     { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes fade-up  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes breathe  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @keyframes urgent   { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
 @keyframes badge-in { from { opacity: 0; transform: scale(0.75); } to { opacity: 1; transform: scale(1); } }
+@keyframes data-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bar-fill-in {
+  from { opacity: 0; transform: scaleY(0.35); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
 @keyframes refresh-flash { 0% { opacity: 1; } 40% { opacity: 0.3; transform: scale(0.92); } 100% { opacity: 1; transform: scale(1); } }
 
 /* ----- Reduced motion ----- */
@@ -103,8 +112,19 @@ a:hover { color: var(--brand-dark); }
   animation: badge-in 0.3s var(--ease-out-expo) both;
 }
 .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.badge.loading { background: var(--gray-bg); color: var(--gray); }
+.badge.loading {
+  background: linear-gradient(
+    90deg,
+    var(--gray-bg) 0%,
+    color-mix(in srgb, var(--gray-bg) 55%, var(--text-muted)) 50%,
+    var(--gray-bg) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+  color: var(--gray);
+}
 .badge.loading .dot { background: var(--gray); animation: pulse 1.5s infinite; }
+.badge.status-loaded { animation: badge-in 0.4s var(--ease-out-expo) both; }
 .badge.down .dot { animation: urgent 0.9s ease-in-out infinite; }
 .badge.operational { background: var(--ok-bg); color: var(--ok-text); }
 .badge.operational .dot { background: var(--ok); }
@@ -149,6 +169,43 @@ a:hover { color: var(--brand-dark); }
 .uptime-bar.operational { background: var(--ok); }
 .uptime-bar.degraded { background: var(--warn); }
 .uptime-bar.down { background: var(--err); }
+.uptime-bar.status-loaded {
+  animation: bar-fill-in 0.35s var(--ease-out-expo) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+.uptime-bars.bars-loaded .uptime-bar:not(.loading) {
+  animation: bar-fill-in 0.38s var(--ease-out-expo) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+.uptime-bars.bars-loaded .uptime-bar.selected {
+  animation: bar-lock-pop 0.22s var(--ease-out-expo) both;
+}
+.uptime-bar.loading {
+  --skeleton-base: var(--gray-bg);
+  --skeleton-highlight: color-mix(in srgb, var(--gray-bg) 50%, var(--text-muted));
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+  cursor: default;
+  pointer-events: none;
+}
+.uptime-bars.loading,
+.uptime-bars.history-loading { pointer-events: none; }
+:root.dark-theme .uptime-bar.loading {
+  --skeleton-base: rgba(255,255,255,0.08);
+  --skeleton-highlight: rgba(255,255,255,0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .uptime-bar.loading {
+    --skeleton-base: rgba(255,255,255,0.08);
+    --skeleton-highlight: rgba(255,255,255,0.16);
+  }
+}
 
 /* Skeleton */
 .skeleton-row { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--card-border); }
@@ -183,6 +240,22 @@ a:hover { color: var(--brand-dark); }
   font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
   background: rgba(0,0,0,0.07); padding: 0.15rem 0.4rem; border-radius: 6px;
   font-variant-numeric: tabular-nums;
+}
+.response-time.data-loaded {
+  animation: data-in 0.35s var(--ease-out-quart) both;
+}
+.response-time.loading {
+  display: inline-block;
+  min-width: 3.5rem;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    var(--gray-bg) 0%,
+    color-mix(in srgb, var(--gray-bg) 50%, var(--text-muted)) 50%,
+    var(--gray-bg) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
 }
 :root.dark-theme .response-time { background: rgba(255,255,255,0.08); }
 @media (prefers-color-scheme: dark) {
@@ -291,6 +364,21 @@ a:hover { color: var(--brand-dark); }
 :root.sagelga-brand :focus-visible           { outline-color: var(--accent); }
 
 /* Skeleton shimmer — light uses warm gray, dark uses warm white */
+:root.sagelga-brand .uptime-bar.loading {
+  --skeleton-base: rgba(100, 92, 75, 0.12);
+  --skeleton-highlight: rgba(100, 92, 75, 0.22);
+}
+:root.sagelga-brand.dark-theme .uptime-bar.loading {
+  --skeleton-base: rgba(240, 234, 214, 0.08);
+  --skeleton-highlight: rgba(240, 234, 214, 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root.sagelga-brand:not(.light-theme) .uptime-bar.loading {
+    --skeleton-base: rgba(240, 234, 214, 0.08);
+    --skeleton-highlight: rgba(240, 234, 214, 0.16);
+  }
+}
+
 :root.sagelga-brand .sk                      { background: rgba(100, 92, 75, 0.1); }
 :root.sagelga-brand.dark-theme .sk           { background: rgba(240, 234, 214, 0.07); }
 @media (prefers-color-scheme: dark) {

@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test tests/unit/brand-filter.test.ts tests/unit/status-data.test.ts tests/unit/load-status-sequence.test.ts tests/unit/status-api-url.test.ts tests/unit/brand-status.test.ts tests/unit/derive-minute-uptime.test.ts && playwright test --workers=1",
     "pages:build": "npx @cloudflare/next-on-pages",
     "deploy": "npm run pages:build && CLOUDFLARE_ACCOUNT_ID=9124272a5c3e327f2e943bf27c0910c4 npx wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
+    "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -26,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5",
     "wrangler": "^4.76.0"
   },

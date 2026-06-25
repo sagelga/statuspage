@@ -36,3 +36,9 @@ ByteSide is a Thai-native tech and gaming brand with personality. The status pag
 4. **Calm by default, urgent when needed** — Reassuring when green; visually escalates when degraded or down.
 
 5. **Light touch on animation** — Every animation communicates state, never decorates.
+
+### Code layout (for agents)
+
+- Active shell components live under `components/layout/` (Navbar, Footer), not top-level `components/Navbar/`.
+- Shared logic is in `src/lib/` (`decode-status`, `date-range`, `load-status-sequence`, `status-data`, etc.).
+- API routes are Edge + KV-backed; service definitions in KV come from the statuspage-pulse worker.

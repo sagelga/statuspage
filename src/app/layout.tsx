@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import favicon from "./favicon.png";
+import { ThemeProvider } from "@/hooks/useTheme";
+import CookieConsentBanner from "@/components/cookies/CookieConsentBanner";
 
-const BASE_URL = 'https://status.byteside.one';
+const BASE_URL = 'https://status.sagelga.com';
 
 export const metadata: Metadata = {
   title: "สถานะระบบ ByteSide.one — ตรวจสอบการทำงานของบริการแบบเรียลไทม์",
@@ -47,16 +49,18 @@ export const metadata: Metadata = {
 import { IBM_Plex_Sans_Thai, JetBrains_Mono } from "next/font/google";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["thai", "latin"],
   display: "swap",
+  preload: false,
   variable: "--font-ibm-plex-sans-thai",
 });
 
 const jetBrainsMono = JetBrains_Mono({
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
   subsets: ["latin"],
   display: "swap",
+  preload: false,
   variable: "--font-jetbrains-mono",
 });
 
@@ -67,8 +71,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const stored = localStorage.getItem('theme-preference');
+                const theme = stored || 'system';
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = theme === 'system' ? systemDark : theme === 'dark';
+                const html = document.documentElement;
+                if (isDark) {
+                  html.setAttribute('data-theme', 'dark');
+                } else {
+                  html.setAttribute('data-theme', 'light');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
-        {children}
+        <ThemeProvider>
+          {children}
+          <CookieConsentBanner />
+        </ThemeProvider>
       </body>
     </html>
   );

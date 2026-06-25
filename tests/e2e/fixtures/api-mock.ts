@@ -1,27 +1,47 @@
 import { Page } from '@playwright/test';
+import { SERVICES_BY_BRAND, BrandId } from '../../../src/config';
 import { StatusResponse } from '../../../src/types';
+import { grantCookieConsent } from './consent';
 
-/**
- * Canonical mock response used across tests.
- * Using a fixed timestamp far in the past prevents the RefreshTimer from
- * triggering a window.location.reload() mid-test.
- */
+function buildMockForBrand(brand: BrandId): StatusResponse {
+  const services = SERVICES_BY_BRAND[brand].map((s) => ({
+    id: s.id,
+    name: s.name,
+    icon: s.icon,
+    status: 'operational' as const,
+    responseTime: 200,
+    statusCode: 200,
+  }));
+  const history = Object.fromEntries(
+    services.map((s) => [s.id, new Array(30).fill('operational')]),
+  );
+  return {
+    status: 'operational',
+    checkedAt: new Date(Date.now() - 10_000).toISOString(),
+    services,
+    history,
+  };
+}
+
+export const MOCK_STATUS_BYTESIDE = buildMockForBrand('byteside');
+export const MOCK_STATUS_SAGELGA = buildMockForBrand('sagelga');
+
 export const MOCK_STATUS: StatusResponse = {
-  status: 'operational',
-  checkedAt: new Date(Date.now() - 10_000).toISOString(), // 10 s ago — timer won't fire
+  ...MOCK_STATUS_BYTESIDE,
   services: [
-    { id: 'cloudflare',  name: 'เครือข่าย Cloudflare',              icon: 'shield',     status: 'operational', responseTime: 120, statusCode: 200 },
-    { id: 'website',     name: 'เว็บไซต์',                           icon: 'globe',      status: 'operational', responseTime: 350, statusCode: 200 },
-    { id: 'r2-content',  name: 'โฮสต์สำหรับรูปภาพและวิดีโอ',          icon: 'image',      status: 'operational', responseTime: 210, statusCode: 200 },
-    { id: 'notion-sync', name: 'ระบบดึงข้อมูลจาก Notion',             icon: 'refresh-cw', status: 'operational', responseTime: 480, statusCode: 200 },
-    { id: 'notion',      name: 'ฐานข้อมูล Notion',                   icon: 'database',   status: 'operational', responseTime: 300, statusCode: 200 },
+    ...MOCK_STATUS_BYTESIDE.services.map((s, i) =>
+      i === 2 ? { ...s, name: 'โฮสต์สำหรับรูปภาพและวิดีโอ' } : s,
+    ),
   ],
+};
+
+export const MOCK_STATUS_FULL: StatusResponse = {
+  status: 'operational',
+  checkedAt: new Date(Date.now() - 10_000).toISOString(),
+  services: [...MOCK_STATUS_BYTESIDE.services, ...MOCK_STATUS_SAGELGA.services],
   history: {
-    cloudflare:  new Array(30).fill('operational'),
-    website:     new Array(30).fill('operational'),
-    'r2-content':  new Array(30).fill('operational'),
-    'notion-sync': new Array(30).fill('operational'),
-    notion:      new Array(30).fill('operational'),
+    ...MOCK_STATUS_BYTESIDE.history,
+    ...MOCK_STATUS_SAGELGA.history,
   },
 };
 
@@ -42,23 +62,56 @@ export const MOCK_STATUS_DOWN: StatusResponse = {
 };
 
 export const MOCK_MINUTES: ('operational' | 'nodata')[] = [
-  ...new Array(480).fill('operational'),  // midnight–08:00
-  ...new Array(60).fill('nodata'),        // 08:00–09:00 gap
-  ...new Array(900).fill('operational'),  // rest of day
+  ...new Array(480).fill('operational'),
+  ...new Array(60).fill('nodata'),
+  ...new Array(900).fill('operational'),
 ];
+
+function buildCurrentOnly(base: StatusResponse): StatusResponse {
+  return {
+    status: base.status,
+    checkedAt: base.checkedAt,
+    services: base.services,
+    history: {},
+  };
+}
+
+function resolveStatusBody(url: string, statusOverride?: StatusResponse): string {
+  const parsed = new URL(url);
+  const brand = parsed.searchParams.get('brand') as BrandId | null;
+  const currentOnly = parsed.searchParams.get('currentOnly') === 'true';
+
+  if (statusOverride) {
+    return JSON.stringify(currentOnly ? buildCurrentOnly(statusOverride) : statusOverride);
+  }
+  if (currentOnly) {
+    if (brand === 'sagelga') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_SAGELGA));
+    if (brand === 'byteside') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_BYTESIDE));
+    return JSON.stringify(buildCurrentOnly(MOCK_STATUS_FULL));
+  }
+  if (brand === 'sagelga') return JSON.stringify(MOCK_STATUS_SAGELGA);
+  if (brand === 'byteside') return JSON.stringify(MOCK_STATUS_BYTESIDE);
+  return JSON.stringify(MOCK_STATUS_FULL);
+}
 
 /**
  * Intercepts /api/status and /api/minutes/* with deterministic mock data so
  * tests are fully offline and never flaky due to external service availability.
  */
-export async function mockApiRoutes(page: Page, statusOverride?: StatusResponse) {
-  const statusBody = JSON.stringify(statusOverride ?? MOCK_STATUS);
+export async function mockApiRoutes(
+  page: Page,
+  statusOverride?: StatusResponse,
+  options?: { grantConsent?: boolean },
+) {
+  if (options?.grantConsent !== false) {
+    await grantCookieConsent(page);
+  }
 
-  await page.route('/api/status', (route) => {
+  await page.route('**/api/status**', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: statusBody,
+      body: resolveStatusBody(route.request().url(), statusOverride),
     });
   });
 

@@ -43,20 +43,23 @@ test.describe('Status Page — navbar', () => {
   test('navbar contains logo link', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.navLogoLink).toBeVisible();
-    await expect(pom.navLogoLink).toHaveAttribute('href', /byteside\.one/);
+    await expect(pom.navLogoLink).toHaveAttribute('href', '/');
+    await expect(pom.navLogoLink).toContainText('ByteSide.one');
   });
 
-  test('navbar has 5 navigation links', async ({ page }) => {
+  test('navbar has Home navigation link', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.navLinks).toHaveCount(5);
+    await expect(pom.navLinks).toHaveCount(1);
+    await expect(pom.navLinks.first()).toHaveText('Home');
   });
 });
 
 test.describe('Status Page — hero banner', () => {
   test('shows loading state initially (before API resolves)', async ({ page }) => {
-    // Delay the API response so we can assert on the loading state
-    await page.route('/api/status', async (route) => {
-      await new Promise((r) => setTimeout(r, 400));
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', async (route) => {
+      await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -67,20 +70,22 @@ test.describe('Status Page — hero banner', () => {
     const pom = new StatusPagePOM(page);
     await pom.goto();
 
-    // Loading banner should appear before the data arrives
-    await expect(pom.heroBanner).toHaveClass(/loading/);
-    await expect(pom.heroTitle).toHaveText('กำลังตรวจสอบระบบ...');
+    // Service names render immediately; status badges and bars show loading placeholders
+    await expect(pom.serviceRows).toHaveCount(5);
+    await expect(pom.serviceRows.first().locator('.component-name')).not.toBeEmpty();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
   });
 
-  test('shows operational banner after data loads', async ({ page }) => {
+  test('hides hero banner when all services are operational', async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
     await pom.goto();
     await pom.waitForStatusLoaded();
 
-    await expect(pom.heroBanner).toHaveClass(/operational/);
-    await expect(pom.heroTitle).toBeVisible();
-    await expect(pom.heroSub).toContainText('ตรวจสอบล่าสุด');
+    await expect(pom.heroBanner).toHaveCount(0);
+    const badges = pom.serviceRows.locator('.badge.operational');
+    await expect(badges).toHaveCount(5);
   });
 
   test('shows degraded banner when a service is slow', async ({ page }) => {
@@ -116,7 +121,9 @@ test.describe('Status Page — hero banner', () => {
   });
 
   test('shows error banner when API call fails', async ({ page }) => {
-    await page.route('/api/status', (route) => route.abort('failed'));
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', (route) => route.abort('failed'));
 
     const pom = new StatusPagePOM(page);
     await pom.goto();
@@ -126,6 +133,158 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
+  test('sagelga fast current-only fetch is requested before brand-full then all-full on mount', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    const requestOrder: string[] = [];
+
+    await page.route('**/api/status**', async (route) => {
+      const url = route.request().url();
+      requestOrder.push(url);
+      const parsed = new URL(url);
+      const brand = parsed.searchParams.get('brand');
+      const currentOnly = parsed.searchParams.get('currentOnly') === 'true';
+      const delay = currentOnly && brand === 'sagelga' ? 150 : 0;
+      await new Promise((r) => setTimeout(r, delay));
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
+        : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/?brand=sagelga');
+    await pom.waitForServicesLoaded();
+
+    const currentIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return p.get('brand') === 'sagelga' && p.get('currentOnly') === 'true';
+    });
+    const brandFullIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return p.get('brand') === 'sagelga' && !p.has('currentOnly');
+    });
+    const allFullIdx = requestOrder.findIndex((u) => {
+      const p = new URL(u).searchParams;
+      return !p.has('brand') && !p.has('currentOnly');
+    });
+    expect(currentIdx).toBeGreaterThanOrEqual(0);
+    expect(brandFullIdx).toBeGreaterThan(currentIdx);
+    expect(allFullIdx).toBeGreaterThan(brandFullIdx);
+  });
+
+  test('brand toggle click shows sagelga badges from currentOnly before delayed brand-full', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+    await grantCookieConsent(page);
+
+    await page.route('**/api/status**', async (route) => {
+      const url = new URL(route.request().url());
+      const brand = url.searchParams.get('brand');
+      const currentOnly = url.searchParams.get('currentOnly') === 'true';
+      let delay = 0;
+      if (currentOnly && brand === 'sagelga') delay = 250;
+      else if (brand === 'sagelga') delay = 2000;
+      else if (currentOnly && brand === 'byteside') delay = 100;
+      else delay = 500;
+      await new Promise((r) => setTimeout(r, delay));
+
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : currentOnly && brand === 'byteside'
+        ? { ...MOCK_STATUS_BYTESIDE, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
+        : brand === 'byteside'
+        ? MOCK_STATUS_BYTESIDE
+        : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/');
+    await pom.waitForServicesLoaded();
+
+    await page.getByRole('tab', { name: 'sagelga.com' }).click();
+    await expect(pom.serviceRows).toHaveCount(7);
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+
+    const sagelgaRow = pom.serviceRows.filter({ has: page.locator('.component-name', { hasText: 'sagelga.com' }) });
+    await expect(sagelgaRow.locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+    await expect(sagelgaRow.locator('.badge')).not.toHaveClass(/loading/);
+  });
+
+  test('sagelga brand shows badges from fast current fetch before full history arrives', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', async (route) => {
+      const url = new URL(route.request().url());
+      const brand = url.searchParams.get('brand');
+      const currentOnly = url.searchParams.get('currentOnly') === 'true';
+      let delay = 2500;
+      if (currentOnly && brand === 'sagelga') delay = 300;
+      else if (brand === 'sagelga') delay = 800;
+      await new Promise((r) => setTimeout(r, delay));
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
+      const body = currentOnly && brand === 'sagelga'
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
+        : brand === 'sagelga'
+        ? MOCK_STATUS_SAGELGA
+        : MOCK_STATUS_FULL;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/?brand=sagelga');
+
+    await expect(pom.serviceRows).toHaveCount(7, { timeout: 5000 });
+    await expect(pom.serviceRows.locator('.component-name', { hasText: 'sagelga.com' })).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+
+    await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
+
+    await pom.waitForServicesLoaded();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.operational').first()).toBeVisible();
+    await expect(pom.serviceRows).toHaveCount(7);
+  });
+
+  test('service names appear immediately while API is pending', async ({ page }) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', async (route) => {
+      await new Promise((r) => setTimeout(r, 3000));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_STATUS),
+      });
+    });
+
+    const pom = new StatusPagePOM(page);
+    await pom.goto();
+
+    await expect(pom.serviceRows).toHaveCount(5, { timeout: 5000 });
+    await expect(pom.serviceRows.first().locator('.component-name')).not.toBeEmpty();
+    await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
+    await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
+  });
+
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
@@ -200,14 +359,19 @@ test.describe('Status Page — service list', () => {
     await expect(pom.uptimeLegend).toContainText('ไม่มีข้อมูล');
   });
 
-  test('skeleton rows are gone after data loads', async ({ page }) => {
+  test('loading badges are gone after data loads', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.skeletonRows).toHaveCount(0);
+    const badges = pom.serviceRows.locator('.badge');
+    const count = await badges.count();
+    for (let i = 0; i < count; i++) {
+      await expect(badges.nth(i)).not.toHaveClass(/loading/);
+    }
   });
 
   test('degraded service shows "มีปัญหา" badge', async ({ page }) => {
-    // Navigate with a fresh mock for this test
-    await page.route('/api/status', (route) => {
+    const { grantCookieConsent } = await import('./fixtures/consent');
+    await grantCookieConsent(page);
+    await page.route('**/api/status**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -288,8 +452,7 @@ test.describe('Status Page — inline mosaic panel (hover)', () => {
     await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
 
     // Trigger the onMouseLeave on the uptime-row by moving to a neutral position
-    // (the hero banner is above the service list)
-    await pom.heroBanner.hover();
+    await pom.aboutBlurb.hover();
     await expect(pom.mosaicInlinePanel).not.toBeVisible({ timeout: 5000 });
   });
 
@@ -392,16 +555,14 @@ test.describe('Status Page — footer', () => {
     await expect(pom.footer).toContainText('ByteSide.one');
   });
 
-  test('theme toggle button is present', async ({ page }) => {
+  test('theme settings button is present', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.themeToggleBtn).toBeVisible();
+    await expect(pom.themeSettingsBtn).toBeVisible();
   });
 
-  test('clicking theme toggle switches theme class on html element', async ({ page }) => {
+  test('selecting dark theme sets data-theme=dark on html element', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    const initialClass = await pom.getThemeClass();
-    await pom.clickThemeToggle();
-    const newClass = await pom.getThemeClass();
-    expect(newClass).not.toBe(initialClass);
+    await pom.selectTheme('Dark');
+    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 });
