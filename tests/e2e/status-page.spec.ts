@@ -51,6 +51,69 @@ test.describe('Status Page — navbar', () => {
     await expect(pom.navLinks).toHaveCount(5);
     await expect(pom.navLinks.first()).toHaveText('เกมมิ่ง');
   });
+
+  test('navbar matches beta.byteside.one chrome styles', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    const styles = await page.evaluate(() => {
+      const nav = document.querySelector('nav.navbar');
+      const topInner = document.querySelector('.nav-top-inner');
+      const bottom = document.querySelector('.nav-bottom');
+      const top = document.querySelector('.nav-top');
+      const logoImg = document.querySelector('.nav-logo-img') as HTMLImageElement | null;
+      const link = document.querySelector('.nav-link') as HTMLElement | null;
+      const brandPill = document.querySelector('.nav-brand-pill') as HTMLElement | null;
+
+      const cs = (el: Element | null) => (el ? getComputedStyle(el) : null);
+
+      const navCs = cs(nav);
+      const topCs = cs(top);
+      const bottomCs = cs(bottom);
+      const topInnerCs = cs(topInner);
+      const linkCs = cs(link);
+      const pillCs = cs(brandPill);
+      const logoCs = cs(logoImg);
+
+      return {
+        navBg: navCs?.backgroundColor,
+        topBorder: topCs?.borderBottom,
+        bottomBg: bottomCs?.backgroundColor,
+        topInnerHeight: topInnerCs?.height,
+        topInnerMaxWidth: topInnerCs?.maxWidth,
+        topInnerPadding: topInnerCs?.padding,
+        logoHeight: logoCs?.height,
+        linkFontSize: linkCs?.fontSize,
+        linkFontWeight: linkCs?.fontWeight,
+        linkLetterSpacing: linkCs?.letterSpacing,
+        linkColor: linkCs?.color,
+        linkPadding: linkCs?.padding,
+        pillHeight: pillCs?.height,
+        pillBg: pillCs?.backgroundColor,
+        pillBorder: pillCs?.border,
+        pillRadius: pillCs?.borderRadius,
+      };
+    });
+
+    expect(styles.navBg).toBe('rgb(82, 0, 106)');
+    expect(styles.topBorder).toBe('1px solid rgba(255, 255, 255, 0.12)');
+    expect(styles.bottomBg).toBe('rgba(0, 0, 0, 0.15)');
+    expect(styles.topInnerHeight).toBe('52px');
+    expect(styles.topInnerMaxWidth).toBe('1280px');
+    expect(styles.topInnerPadding).toBe('0px 24px');
+    expect(styles.logoHeight).toBe('32px');
+    expect(styles.linkFontSize).toBe('14px');
+    expect(styles.linkFontWeight).toBe('500');
+    expect(styles.linkLetterSpacing).toBe('0.2px');
+    expect(styles.linkColor).toBe('rgba(255, 255, 255, 0.78)');
+    expect(styles.linkPadding).toBe('9.6px 17.6px');
+    expect(styles.pillHeight).toBe('36px');
+    expect(styles.pillBg).toBe('rgba(255, 255, 255, 0.12)');
+    expect(styles.pillBorder).toBe('1px solid rgba(255, 255, 255, 0.2)');
+    expect(styles.pillRadius).toBe('18px');
+
+    await expect(pom.navLinks.nth(0)).toHaveAttribute('href', 'https://beta.byteside.one/tags/gaming');
+    await expect(pom.navLinks.nth(1)).toHaveAttribute('href', 'https://beta.byteside.one/tags/tech');
+    await expect(page.getByRole('tablist', { name: 'เลือกแบรนด์' })).toBeVisible();
+  });
 });
 
 test.describe('Status Page — hero banner', () => {

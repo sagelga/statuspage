@@ -8,28 +8,34 @@
   margin-bottom: 1.75rem;
 }
 
-/* When inside the navbar controls slot */
+/* When inside the navbar controls slot — mirrors beta navSearchPill chrome */
 .nav-brand-pill {
   margin-bottom: 0;
-  background: rgba(0, 0, 0, 0.25);
-  border-color: rgba(255, 255, 255, 0.18);
+  height: 36px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
   align-self: center;
 }
 
 .nav-brand-pill .brand-toggle-btn {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.875rem;
+  font-weight: 500;
   padding: 0.25rem 0.75rem;
+  letter-spacing: 0.2px;
 }
 
 .nav-brand-pill .brand-toggle-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
 .nav-brand-pill .brand-toggle-btn.active {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+  font-weight: 700;
   box-shadow: none;
 }
 

@@ -9,11 +9,11 @@ export interface BrandNavbarConfig {
 }
 
 const BYTESIDE_LINKS: NavItem[] = [
-  { label: 'เกมมิ่ง', href: 'https://beta.byteside.one/blog/tags/gaming', external: true },
-  { label: 'เทคโนโลยี', href: 'https://beta.byteside.one/blog/tags/tech-news', external: true },
-  { label: 'รีวิว', href: 'https://beta.byteside.one/blog/tags/reviews', external: true },
-  { label: 'คริปโต', href: 'https://beta.byteside.one/blog/tags/crypto', external: true },
-  { label: 'บล็อก', href: 'https://beta.byteside.one/blog', external: true },
+  { label: 'เกมมิ่ง', href: 'https://beta.byteside.one/tags/gaming', external: true },
+  { label: 'เทคโนโลยี', href: 'https://beta.byteside.one/tags/tech', external: true },
+  { label: 'รีวิว', href: 'https://beta.byteside.one/tags/review', external: true },
+  { label: 'คริปโต', href: 'https://beta.byteside.one/tags/cryptocurrency', external: true },
+  { label: 'บล็อก', href: 'https://beta.byteside.one/', external: true },
 ];
 
 const SAGELGA_LINKS: NavItem[] = [
