@@ -11,6 +11,7 @@ interface NavbarProps {
   brandHref?: string;
   navbarBg: string;
   links: NavItem[];
+  logo?: React.ReactNode;
   controls?: React.ReactNode;
 }
 
@@ -19,6 +20,7 @@ export default function Navbar({
   brandHref = "/",
   navbarBg,
   links,
+  logo,
   controls,
 }: NavbarProps) {
   const pathname = usePathname();
@@ -61,9 +63,17 @@ export default function Navbar({
     >
       <div className="nav-top">
         <div className="nav-top-inner">
-          <Link href={brandHref} className="nav-logo-text">
-            {brandName}
-          </Link>
+          {logo ?? (
+            brandHref.startsWith("http") ? (
+              <a href={brandHref} className="nav-logo-text">
+                {brandName}
+              </a>
+            ) : (
+              <Link href={brandHref} className="nav-logo-text">
+                {brandName}
+              </Link>
+            )
+          )}
           {controls && <div className="nav-top-right">{controls}</div>}
         </div>
       </div>

@@ -27,6 +27,21 @@
   height: 52px;
 }
 
+.nav-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none !important;
+}
+
+.nav-logo-img {
+  height: 32px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  display: block;
+}
+
 .nav-logo-text {
   font-size: 1.25rem;
   font-weight: 800;

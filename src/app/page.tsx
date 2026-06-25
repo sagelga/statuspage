@@ -7,14 +7,13 @@
  * - Merges partial API payloads with mergeStatusData to preserve cached cross-brand history.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Navbar from '@/components/layout/Navbar';
+import StatusNavbar from '@/components/layout/StatusNavbar';
 import Footer from '@/components/layout/Footer';
 import { Hero } from '@/components/Hero/Hero';
 import { ServiceList } from '@/components/ServiceList/ServiceList';
 import { IncidentHistory } from '@/components/IncidentHistory/IncidentHistory';
 import { ApiSection } from '@/components/ApiSection/ApiSection';
-import { BrandToggle } from '@/components/BrandToggle/BrandToggle';
-import type { CurrentStatusResponse, StatusResponse, ServiceStatus, NavItem, FooterColumn } from '@/types';
+import type { CurrentStatusResponse, StatusResponse, ServiceStatus, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
 import { brandHasHistory, countLoadedForBrand } from '@/lib/brand-status';
 import { mergeStatusData } from '@/lib/status-data';
@@ -39,10 +38,6 @@ const jsonLd = {
     },
   },
 };
-
-const NAV_LINKS: NavItem[] = [
-  { label: 'Home', href: '/' },
-];
 
 const FOOTER_COLUMNS: FooterColumn[] = [
   {
@@ -231,13 +226,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar
-        brandName="ByteSide.one"
-        brandHref="/"
-        navbarBg="#52006A"
-        links={NAV_LINKS}
-        controls={<BrandToggle active={activeBrand} onChange={handleBrandChange} className="nav-brand-pill" />}
-      />
+      <StatusNavbar activeBrand={activeBrand} onBrandChange={handleBrandChange} />
       <div className={`page-wrap${brandFading ? ' brand-fade' : ''}`}>
         <Hero
           status={error ? ('down' as ServiceStatus) : brandStatus}

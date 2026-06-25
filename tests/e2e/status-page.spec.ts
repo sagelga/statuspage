@@ -40,17 +40,16 @@ test.describe('Status Page — navbar', () => {
     await expect(pom.navbar).toBeVisible();
   });
 
-  test('navbar contains logo link', async ({ page }) => {
+  test('navbar contains ByteSide logo link', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.navLogoLink).toBeVisible();
-    await expect(pom.navLogoLink).toHaveAttribute('href', '/');
-    await expect(pom.navLogoLink).toContainText('ByteSide.one');
+    await expect(pom.navLogoLink).toHaveAttribute('href', 'https://beta.byteside.one');
   });
 
-  test('navbar has Home navigation link', async ({ page }) => {
+  test('navbar has ByteSide category links', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    await expect(pom.navLinks).toHaveCount(1);
-    await expect(pom.navLinks.first()).toHaveText('Home');
+    await expect(pom.navLinks).toHaveCount(5);
+    await expect(pom.navLinks.first()).toHaveText('เกมมิ่ง');
   });
 });
 

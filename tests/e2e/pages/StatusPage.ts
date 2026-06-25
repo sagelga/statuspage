@@ -46,7 +46,7 @@ export class StatusPagePOM {
     this.page = page;
 
     this.navbar         = page.locator('nav.navbar');
-    this.navLogoLink    = page.locator('a.nav-logo-text');
+    this.navLogoLink    = page.locator('a.nav-logo-text, a.nav-logo');
     this.navLinks       = page.locator('ul.nav-list .nav-link');
     this.footer         = page.locator('footer.footer');
     this.themeSettingsBtn = page.locator('button.footer-toggle-btn[aria-label="Theme settings"]');
