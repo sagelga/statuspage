@@ -4,9 +4,6 @@ import { COOKIE_STORAGE_KEY } from '../../../src/types';
 /** Pre-accept cookies so bottom-sheet overlays do not block UI interactions. */
 export async function grantCookieConsent(page: Page) {
   await page.addInitScript((key) => {
-    for (const k of Object.keys(localStorage)) {
-      if (k.startsWith('status-hist:')) localStorage.removeItem(k);
-    }
     localStorage.setItem(key, JSON.stringify({
       functional: true,
       analytics: true,

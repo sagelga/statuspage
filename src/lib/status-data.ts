@@ -1,10 +1,6 @@
 /**
  * Merges partial and full /api/status responses on the client without losing cached history.
  */
-import {
-  hydrateHistoryFromCache,
-  persistImmutableFromResponse,
-} from '@/lib/history-cache';
 import type { CurrentStatusResponse, StatusResponse } from '@/types';
 
 function hasRecordKeys<T>(record: Record<string, T> | undefined): record is Record<string, T> {
@@ -56,27 +52,4 @@ export function mergeStatusData(
       ? { ...prev.dailyFuncUptime, ...incoming.dailyFuncUptime }
       : prev.dailyFuncUptime,
   };
-}
-
-/** True when the incoming payload includes non-empty history (brand-full), not currentOnly. */
-export function incomingHasHistory(
-  incoming: StatusResponse | CurrentStatusResponse,
-): boolean {
-  return hasRecordKeys(incoming.history);
-}
-
-/**
- * Merge API data, hydrate immutable days from localStorage, and persist new immutable slices.
- */
-export function applyStatusUpdate(
-  prev: StatusResponse | null,
-  incoming: StatusResponse | CurrentStatusResponse,
-  tzOffset: number,
-): StatusResponse {
-  const merged = mergeStatusData(prev, incoming);
-  const hydrated = hydrateHistoryFromCache(merged, tzOffset);
-  if (incomingHasHistory(incoming)) {
-    persistImmutableFromResponse(hydrated, tzOffset);
-  }
-  return hydrated;
 }

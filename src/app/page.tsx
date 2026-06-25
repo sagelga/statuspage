@@ -2,9 +2,9 @@
 
 /**
  * Main status page (client component).
- * - Initial load: active brand currentOnly → brand-full, then idle per-other-brand preload.
- * - Immutable history (days before today) cached in localStorage.
- * - Brand switch uses in-memory + cache state; fetches only missing data.
+ * - Initial load: three-phase sequence via loadStatusSequence (currentOnly → brand-full → all-full).
+ * - Brand switch: awaits currentOnly before brand-full so badges appear before history bars.
+ * - Merges partial API payloads with mergeStatusData to preserve cached cross-brand history.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import StatusNavbar from '@/components/layout/StatusNavbar';
@@ -15,9 +15,8 @@ import { IncidentHistory } from '@/components/IncidentHistory/IncidentHistory';
 import { ApiSection } from '@/components/ApiSection/ApiSection';
 import type { CurrentStatusResponse, StatusResponse, ServiceStatus, FooterColumn } from '@/types';
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
-import { brandHasTodayData, countLoadedForBrand } from '@/lib/brand-status';
-import { applyStatusUpdate } from '@/lib/status-data';
-import { buildInitialStateFromCache } from '@/lib/history-cache';
+import { brandHasHistory, countLoadedForBrand } from '@/lib/brand-status';
+import { mergeStatusData } from '@/lib/status-data';
 import { loadStatusSequence } from '@/lib/load-status-sequence';
 import { getTimezoneOffsetMinutes } from '@/lib/date-range';
 import { buildStatusApiUrl } from '@/lib/status-api-url';
@@ -96,13 +95,6 @@ export default function Home() {
     setError(false);
   }, []);
 
-  const applyIncoming = useCallback((
-    incoming: StatusResponse | CurrentStatusResponse,
-  ) => {
-    const tz = getTimezoneOffsetMinutes();
-    applyData(applyStatusUpdate(dataRef.current, incoming, tz));
-  }, [applyData]);
-
   const fetchBrandCurrent = useCallback(async (brand: BrandId) => {
     const tz = getTimezoneOffsetMinutes();
     try {
@@ -110,12 +102,12 @@ export default function Home() {
       const currentRes = await fetch(url);
       if (currentRes.ok) {
         const currentJson: CurrentStatusResponse = await currentRes.json();
-        applyIncoming(currentJson);
+        applyData(mergeStatusData(dataRef.current, currentJson));
       }
     } catch (err) {
       console.error('Current status fetch failed:', err);
     }
-  }, [applyIncoming]);
+  }, [applyData]);
 
   const fetchBrandFull = useCallback(async (brand: BrandId) => {
     const tz = getTimezoneOffsetMinutes();
@@ -124,23 +116,12 @@ export default function Home() {
       const fullRes = await fetch(url);
       if (fullRes.ok) {
         const fullJson: StatusResponse = await fullRes.json();
-        applyIncoming(fullJson);
-        lastFullRefreshRef.current = Date.now();
+        applyData(mergeStatusData(dataRef.current, fullJson));
       }
     } catch (err) {
       console.error('Brand full status fetch failed:', err);
     }
-  }, [applyIncoming]);
-
-  const ensureBrandLoaded = useCallback(async (brand: BrandId) => {
-    const expected = SERVICES_BY_BRAND[brand].length;
-    if (countLoadedForBrand(dataRef.current, brand) < expected) {
-      await fetchBrandCurrent(brand);
-    }
-    if (!brandHasTodayData(dataRef.current, brand)) {
-      await fetchBrandFull(brand);
-    }
-  }, [fetchBrandCurrent, fetchBrandFull]);
+  }, [applyData]);
 
   const loadFullStatus = useCallback(async () => {
     const tz = getTimezoneOffsetMinutes();
@@ -151,32 +132,30 @@ export default function Home() {
       const currentRes = await fetch(currentUrl);
       if (!currentRes.ok) throw new Error('Failed to fetch current status');
       const currentJson: CurrentStatusResponse = await currentRes.json();
-      applyIncoming(currentJson);
+      applyData(mergeStatusData(dataRef.current, currentJson));
 
       if (now - lastFullRefreshRef.current >= FULL_REFRESH_INTERVAL_MS) {
-        await fetchBrandFull(brand);
+        const fullUrl = buildStatusApiUrl({ tzOffset: tz, brand });
+        const fullRes = await fetch(fullUrl);
+        if (fullRes.ok) {
+          const fullJson: StatusResponse = await fullRes.json();
+          applyData(mergeStatusData(dataRef.current, fullJson));
+          lastFullRefreshRef.current = now;
+        }
       }
     } catch (err) {
       console.error(err);
       if (!dataRef.current) setError(true);
     }
-  }, [applyIncoming, fetchBrandFull]);
+  }, [applyData]);
 
-  // Hydrate immutable history from localStorage before the first network fetch
-  useEffect(() => {
-    const tz = getTimezoneOffsetMinutes();
-    const cached = buildInitialStateFromCache(tz);
-    if (cached) applyData(cached);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Mount: active brand first, then idle preload for other brands
+  // Mount: three-phase load — fast badges, then brand history, then all-brand cache
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const brand = activeBrandRef.current;
-        const { hadBrandFull } = await loadStatusSequence({
+        const { hadFull } = await loadStatusSequence({
           brand,
           fetch: (url) => fetch(url),
           withPriority: true,
@@ -185,10 +164,10 @@ export default function Home() {
             if (!cancelled) applyData(next);
           },
         });
-        if (!cancelled && !hadBrandFull && !dataRef.current?.services?.length) setError(true);
+        if (!cancelled && !hadFull && !dataRef.current) setError(true);
       } catch (err) {
         console.error(err);
-        if (!cancelled && !dataRef.current?.services?.length) setError(true);
+        if (!cancelled && !dataRef.current) setError(true);
       } finally {
         if (!cancelled) initialLoadDone.current = true;
       }
@@ -200,8 +179,17 @@ export default function Home() {
   // activeBrand changes (incl. URL ?brand=): top up missing services/history for that brand
   useEffect(() => {
     if (!initialLoadDone.current) return;
-    void ensureBrandLoaded(activeBrand);
-  }, [activeBrand, ensureBrandLoaded]);
+    const brand = activeBrand;
+    const expected = SERVICES_BY_BRAND[brand].length;
+    void (async () => {
+      if (countLoadedForBrand(dataRef.current, brand) < expected) {
+        await fetchBrandCurrent(brand);
+      }
+      if (!brandHasHistory(dataRef.current, brand)) {
+        await fetchBrandFull(brand);
+      }
+    })();
+  }, [activeBrand, fetchBrandCurrent, fetchBrandFull]);
 
   const handleBrandChange = (brand: BrandId) => {
     if (brand === activeBrand) return;
@@ -209,7 +197,11 @@ export default function Home() {
     window.history.replaceState(null, '', url);
     setActiveBrand(brand);
     setBrandFading(true);
-    void ensureBrandLoaded(brand);
+    // Sequential: currentOnly badges before brand-full history (matches e2e request ordering)
+    void (async () => {
+      await fetchBrandCurrent(brand);
+      await fetchBrandFull(brand);
+    })();
     setTimeout(() => setBrandFading(false), 160);
   };
 
@@ -226,7 +218,7 @@ export default function Home() {
     : brandServices.some(s => s.status === 'degraded') ? 'degraded'
     : 'operational';
   const activeBrandMeta = BRANDS.find(b => b.id === activeBrand)!;
-  const historyLoading = data !== null && !brandHasTodayData(data, activeBrand);
+  const historyLoading = data !== null && !brandHasHistory(data, activeBrand);
 
   return (
     <main>

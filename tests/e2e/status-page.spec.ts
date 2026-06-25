@@ -195,7 +195,7 @@ test.describe('Status Page — hero banner', () => {
 });
 
 test.describe('Status Page — service list', () => {
-  test('sagelga fast current-only fetch is requested before brand-full then byteside preload on mount', async ({ page }) => {
+  test('sagelga fast current-only fetch is requested before brand-full then all-full on mount', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     const requestOrder: string[] = [];
@@ -208,14 +208,12 @@ test.describe('Status Page — service list', () => {
       const currentOnly = parsed.searchParams.get('currentOnly') === 'true';
       const delay = currentOnly && brand === 'sagelga' ? 150 : 0;
       await new Promise((r) => setTimeout(r, delay));
-      const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA } = await import('./fixtures/api-mock');
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
       const body = currentOnly && brand === 'sagelga'
-        ? { ...MOCK_STATUS_SAGELGA, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
         : brand === 'sagelga'
         ? MOCK_STATUS_SAGELGA
-        : currentOnly && brand === 'byteside'
-        ? { ...MOCK_STATUS_BYTESIDE, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
-        : MOCK_STATUS_BYTESIDE;
+        : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -235,19 +233,18 @@ test.describe('Status Page — service list', () => {
       const p = new URL(u).searchParams;
       return p.get('brand') === 'sagelga' && !p.has('currentOnly');
     });
-    const bytesidePreloadIdx = requestOrder.findIndex((u) => {
+    const allFullIdx = requestOrder.findIndex((u) => {
       const p = new URL(u).searchParams;
-      return p.get('brand') === 'byteside';
+      return !p.has('brand') && !p.has('currentOnly');
     });
     expect(currentIdx).toBeGreaterThanOrEqual(0);
     expect(brandFullIdx).toBeGreaterThan(currentIdx);
-    expect(bytesidePreloadIdx).toBeGreaterThan(brandFullIdx);
-    expect(requestOrder.every((u) => new URL(u).searchParams.has('brand'))).toBe(true);
+    expect(allFullIdx).toBeGreaterThan(brandFullIdx);
   });
 
   test('brand toggle click shows sagelga badges from currentOnly before delayed brand-full', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
-    const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA } = await import('./fixtures/api-mock');
+    const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
     await grantCookieConsent(page);
 
     await page.route('**/api/status**', async (route) => {
@@ -262,12 +259,14 @@ test.describe('Status Page — service list', () => {
       await new Promise((r) => setTimeout(r, delay));
 
       const body = currentOnly && brand === 'sagelga'
-        ? { ...MOCK_STATUS_SAGELGA, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
         : currentOnly && brand === 'byteside'
-        ? { ...MOCK_STATUS_BYTESIDE, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
+        ? { ...MOCK_STATUS_BYTESIDE, history: {} }
         : brand === 'sagelga'
         ? MOCK_STATUS_SAGELGA
-        : MOCK_STATUS_BYTESIDE;
+        : brand === 'byteside'
+        ? MOCK_STATUS_BYTESIDE
+        : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -297,16 +296,14 @@ test.describe('Status Page — service list', () => {
       const currentOnly = url.searchParams.get('currentOnly') === 'true';
       let delay = 2500;
       if (currentOnly && brand === 'sagelga') delay = 300;
-      else if (brand === 'sagelga') delay = 4000;
+      else if (brand === 'sagelga') delay = 800;
       await new Promise((r) => setTimeout(r, delay));
-      const { MOCK_STATUS_BYTESIDE, MOCK_STATUS_SAGELGA } = await import('./fixtures/api-mock');
+      const { MOCK_STATUS_SAGELGA, MOCK_STATUS_FULL } = await import('./fixtures/api-mock');
       const body = currentOnly && brand === 'sagelga'
-        ? { ...MOCK_STATUS_SAGELGA, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
+        ? { ...MOCK_STATUS_SAGELGA, history: {} }
         : brand === 'sagelga'
         ? MOCK_STATUS_SAGELGA
-        : currentOnly && brand === 'byteside'
-        ? { ...MOCK_STATUS_BYTESIDE, history: {}, dailyUptime: undefined, dailyFuncUptime: undefined }
-        : MOCK_STATUS_BYTESIDE;
+        : MOCK_STATUS_FULL;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

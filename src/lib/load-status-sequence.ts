@@ -1,12 +1,11 @@
 /**
- * Client-side load sequence: fast badges → brand history → deferred other-brand preload.
+ * Client-side three-phase status load: fast badges → brand history → cross-brand cache.
  */
-import { BRANDS, SERVICES_BY_BRAND, type BrandId } from '@/config';
-import { brandHasTodayData, countLoadedForBrand } from '@/lib/brand-status';
+import type { BrandId } from '@/config';
 import type { CurrentStatusResponse, StatusResponse } from '@/types';
 import { getTimezoneOffsetMinutes } from './date-range';
 import { buildStatusApiUrl } from './status-api-url';
-import { applyStatusUpdate } from './status-data';
+import { mergeStatusData } from './status-data';
 
 /** Injectable fetch for tests and page.tsx. */
 export type StatusFetch = (url: string) => Promise<Response>;
@@ -31,41 +30,13 @@ function scheduleIdle(task: () => void): void {
   setTimeout(task, 0);
 }
 
-async function fetchBrandCurrent(
-  brand: BrandId,
-  tz: number,
-  fetchFn: StatusFetch,
-  getCurrent: () => StatusResponse | null,
-  onUpdate: (data: StatusResponse) => void,
-): Promise<boolean> {
-  const currentUrl = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
-  const res = await fetchFn(currentUrl);
-  if (!res.ok) return false;
-  const json: CurrentStatusResponse = await res.json();
-  onUpdate(applyStatusUpdate(getCurrent(), json, tz));
-  return true;
-}
-
-async function fetchBrandFull(
-  brand: BrandId,
-  tz: number,
-  fetchFn: StatusFetch,
-  getCurrent: () => StatusResponse | null,
-  onUpdate: (data: StatusResponse) => void,
-): Promise<boolean> {
-  const brandFullUrl = buildStatusApiUrl({ tzOffset: tz, brand });
-  const res = await fetchFn(brandFullUrl);
-  if (!res.ok) return false;
-  const json: StatusResponse = await res.json();
-  onUpdate(applyStatusUpdate(getCurrent(), json, tz));
-  return true;
-}
-
 /**
- * Run the load sequence against /api/status.
+ * Run the three-phase load sequence against /api/status.
  * 1. currentOnly — badges appear quickly (history omitted).
- * 2. brand-full — 30-day history for the active brand (today + persist immutable days).
- * 3. idle preload — each inactive brand: currentOnly then brand-full.
+ * 2. brand-full — 30-day history for the active brand.
+ * 3. all-full — deferred cross-brand cache for instant tab switches.
+ * Each phase merges into prior state via mergeStatusData.
+ * @returns Flags indicating which phases returned OK responses
  */
 export async function loadStatusSequence({
   brand,
@@ -73,43 +44,40 @@ export async function loadStatusSequence({
   withPriority = true,
   getCurrent,
   onUpdate,
-}: LoadStatusSequenceOptions): Promise<{
-  hadPriority: boolean;
-  hadBrandFull: boolean;
-  hadOtherBrandPreload: boolean;
-}> {
+}: LoadStatusSequenceOptions): Promise<{ hadPriority: boolean; hadBrandFull: boolean; hadFull: boolean }> {
   const tz = getTimezoneOffsetMinutes();
   let hadPriority = false;
   let hadBrandFull = false;
-  let hadOtherBrandPreload = false;
+  let hadFull = false;
 
   if (withPriority) {
-    hadPriority = await fetchBrandCurrent(brand, tz, fetchFn, getCurrent, onUpdate);
+    const currentUrl = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
+    const priorityRes = await fetchFn(currentUrl);
+    if (priorityRes.ok) {
+      const priorityJson: CurrentStatusResponse = await priorityRes.json();
+      onUpdate(mergeStatusData(getCurrent(), priorityJson));
+      hadPriority = true;
+    }
   }
 
-  if (!brandHasTodayData(getCurrent(), brand)) {
-    hadBrandFull = await fetchBrandFull(brand, tz, fetchFn, getCurrent, onUpdate);
-  } else {
+  const brandFullUrl = buildStatusApiUrl({ tzOffset: tz, brand });
+  const brandFullRes = await fetchFn(brandFullUrl);
+  if (brandFullRes.ok) {
+    const brandFullJson: StatusResponse = await brandFullRes.json();
+    onUpdate(mergeStatusData(getCurrent(), brandFullJson));
     hadBrandFull = true;
   }
 
-  const otherBrands = BRANDS.map((b) => b.id).filter((id) => id !== brand);
-
+  const allFullUrl = buildStatusApiUrl({ tzOffset: tz });
   await new Promise<void>((resolve) => {
     scheduleIdle(() => {
       void (async () => {
         try {
-          for (const other of otherBrands) {
-            const current = getCurrent();
-            if (countLoadedForBrand(current, other) < SERVICES_BY_BRAND[other].length) {
-              await fetchBrandCurrent(other, tz, fetchFn, getCurrent, onUpdate);
-            }
-            if (!brandHasTodayData(getCurrent(), other)) {
-              const ok = await fetchBrandFull(other, tz, fetchFn, getCurrent, onUpdate);
-              if (ok) hadOtherBrandPreload = true;
-            } else {
-              hadOtherBrandPreload = true;
-            }
+          const fullRes = await fetchFn(allFullUrl);
+          if (fullRes.ok) {
+            const fullJson: StatusResponse = await fullRes.json();
+            onUpdate(mergeStatusData(getCurrent(), fullJson));
+            hadFull = true;
           }
         } finally {
           resolve();
@@ -118,5 +86,5 @@ export async function loadStatusSequence({
     });
   });
 
-  return { hadPriority, hadBrandFull, hadOtherBrandPreload };
+  return { hadPriority, hadBrandFull, hadFull };
 }
