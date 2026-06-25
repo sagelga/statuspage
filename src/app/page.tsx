@@ -27,7 +27,7 @@ const jsonLd = {
   '@type': 'WebPage',
   name: 'สถานะระบบ ByteSide.one',
   description: 'ตรวจสอบสถานะการทำงานของบริการทั้งหมดในเครือ ByteSide.one แบบเรียลไทม์',
-  url: 'https://status.byteside.one',
+  url: 'https://status.sagelga.com',
   inLanguage: 'th',
   publisher: {
     '@type': 'Organization',
@@ -35,7 +35,7 @@ const jsonLd = {
     url: 'https://beta.byteside.one',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://status.byteside.one/img/logo-large.png',
+      url: 'https://status.sagelga.com/img/logo-large.png',
     },
   },
 };
@@ -79,6 +79,8 @@ export default function Home() {
   const dataRef = useRef<StatusResponse | null>(null);
   const initialLoadDone = useRef(false);
   const activeBrandRef = useRef(activeBrand);
+  const lastFullRefreshRef = useRef(0);
+  const FULL_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
   useEffect(() => {
     activeBrandRef.current = activeBrand;
@@ -128,11 +130,24 @@ export default function Home() {
 
   const loadFullStatus = useCallback(async () => {
     const tz = getTimezoneOffsetMinutes();
+    const brand = activeBrandRef.current;
+    const now = Date.now();
     try {
-      const response = await fetch(`/api/status?tzOffset=${tz}`);
-      if (!response.ok) throw new Error('Failed to fetch');
-      const json: StatusResponse = await response.json();
-      applyData(json);
+      const currentUrl = buildStatusApiUrl({ tzOffset: tz, brand, currentOnly: true });
+      const currentRes = await fetch(currentUrl);
+      if (!currentRes.ok) throw new Error('Failed to fetch current status');
+      const currentJson: CurrentStatusResponse = await currentRes.json();
+      applyData(mergeStatusData(dataRef.current, currentJson));
+
+      if (now - lastFullRefreshRef.current >= FULL_REFRESH_INTERVAL_MS) {
+        const fullUrl = buildStatusApiUrl({ tzOffset: tz, brand });
+        const fullRes = await fetch(fullUrl);
+        if (fullRes.ok) {
+          const fullJson: StatusResponse = await fullRes.json();
+          applyData(mergeStatusData(dataRef.current, fullJson));
+          lastFullRefreshRef.current = now;
+        }
+      }
     } catch (err) {
       console.error(err);
       if (!dataRef.current) setError(true);

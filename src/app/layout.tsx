@@ -4,7 +4,7 @@ import favicon from "./favicon.png";
 import { ThemeProvider } from "@/hooks/useTheme";
 import CookieConsentBanner from "@/components/cookies/CookieConsentBanner";
 
-const BASE_URL = 'https://status.byteside.one';
+const BASE_URL = 'https://status.sagelga.com';
 
 export const metadata: Metadata = {
   title: "สถานะระบบ ByteSide.one — ตรวจสอบการทำงานของบริการแบบเรียลไทม์",

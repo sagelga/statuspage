@@ -22,70 +22,131 @@ interface ServicesConfig {
   updatedAt: string;
 }
 
+interface DayBucket {
+  start: number;
+  end: number;
+  operational: number;
+  functional: number;
+  known: number;
+}
+
+const CACHE_CURRENT = 'public, max-age=15, s-maxage=15';
+const CACHE_FULL = 'public, max-age=60, s-maxage=60, stale-while-revalidate=120';
+
 /** Read a string value from the STATUS_HISTORY KV namespace (edge binding). */
 async function fetchFromKV(key: string): Promise<string | null> {
   const { env } = getRequestContext();
   const kv = (env as unknown as { STATUS_HISTORY: KVNamespace }).STATUS_HISTORY;
-  if (!kv) {
-    console.log(`[KV] namespace not available, key=${key}`);
+  if (!kv) return null;
+  return kv.get(key);
+}
+
+function parseMinuteMap(raw: string | null): Record<string, string> | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
     return null;
   }
-  const value = await kv.get(key);
-  console.log(`[KV] get key=${key} hit=${value !== null} length=${value?.length ?? 0}`);
-  return value;
 }
 
-// Reads per-day uptime % from epoch-based minute data (m:{serviceId})
-// Returns { opPct, funcPct } where:
-//   opPct  = operational / total  (strict: degraded counts against uptime)
-//   funcPct = (operational + degraded) / total  (functional: service was responding)
-async function readDailyUptimePct(
-  serviceId: string, tzOffsetMinutes: number
-): Promise<{ opPct: (number | null)[]; funcPct: (number | null)[] }> {
-  const dates = getLast30IsoDates(tzOffsetMinutes);
-  const empty = { opPct: new Array(30).fill(null), funcPct: new Array(30).fill(null) };
-  const raw = await fetchFromKV(`m:${serviceId}`);
-  if (!raw) return empty;
+function buildDayBuckets(dates: string[], tzOffsetMinutes: number): DayBucket[] {
+  const tzOffsetSec = tzOffsetMinutes * 60;
+  return dates.map((localDate) => {
+    const start = Math.floor(new Date(`${localDate}T00:00:00Z`).getTime() / 1000) - tzOffsetSec;
+    return { start, end: start + 86400, operational: 0, functional: 0, known: 0 };
+  });
+}
 
-  try {
-    const all: Record<string, string> = JSON.parse(raw);
-    const tzOffsetSec = tzOffsetMinutes * 60;
+function findDayIndex(epoch: number, buckets: DayBucket[]): number {
+  let lo = 0;
+  let hi = buckets.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (epoch < buckets[mid].start) hi = mid - 1;
+    else if (epoch >= buckets[mid].end) lo = mid + 1;
+    else return mid;
+  }
+  return -1;
+}
 
-    const opPct: (number | null)[] = [];
-    const funcPct: (number | null)[] = [];
-
-    for (const localDate of dates) {
-      const localDayStart = Math.floor(new Date(`${localDate}T00:00:00Z`).getTime() / 1000) - tzOffsetSec;
-      const localDayEnd = localDayStart + 86400;
-
-      let operational = 0;
-      let functional = 0; // operational + degraded
-      let known = 0;
-      for (const [epochStr, code] of Object.entries(all)) {
-        const epoch = parseInt(epochStr);
-        if (epoch >= localDayStart && epoch < localDayEnd) {
-          known++;
-          if (code === 'o' || code === 'operational') { operational++; functional++; }
-          else if (code === 'd' || code === 'degraded') { functional++; }
-          // 'x' / 'down' contributes to known but neither counter
-        }
-      }
-      opPct.push(known === 0 ? null : (operational / known) * 100);
-      funcPct.push(known === 0 ? null : (functional / known) * 100);
-    }
-    return { opPct, funcPct };
-  } catch {
-    return empty;
+function countMinuteCode(bucket: DayBucket, code: string): void {
+  bucket.known++;
+  if (code === 'o' || code === 'operational') {
+    bucket.operational++;
+    bucket.functional++;
+  } else if (code === 'd' || code === 'degraded') {
+    bucket.functional++;
   }
 }
 
-// Reads 30-day daily summary from the compact daily:{serviceId} key
-async function readDailyHistory(serviceId: string, tzOffsetMinutes: number): Promise<(ServiceStatus | 'nodata')[]> {
+/** Single pass over m:{id} data for current status + 30-day uptime buckets. */
+function deriveFromMinuteMap(
+  all: Record<string, string> | null,
+  tzOffsetMinutes: number,
+  nowEpoch: number,
+): { currentStatus: ServiceStatus; opPct: (number | null)[]; funcPct: (number | null)[] } {
+  const empty = {
+    currentStatus: 'operational' as ServiceStatus,
+    opPct: new Array<number | null>(30).fill(null),
+    funcPct: new Array<number | null>(30).fill(null),
+  };
+  if (!all) return empty;
+
   const dates = getLast30IsoDates(tzOffsetMinutes);
-  const raw = await fetchFromKV(`daily:${serviceId}`);
-  if (!raw) return new Array(30).fill('nodata');
+  const buckets = buildDayBuckets(dates, tzOffsetMinutes);
+  let latestEpoch = -1;
+  let latestCode = '';
+
+  for (const [epochStr, code] of Object.entries(all)) {
+    const epoch = parseInt(epochStr, 10);
+    if (Number.isNaN(epoch)) continue;
+
+    if (epoch <= nowEpoch && epoch > latestEpoch) {
+      latestEpoch = epoch;
+      latestCode = code;
+    }
+
+    const idx = findDayIndex(epoch, buckets);
+    if (idx >= 0) countMinuteCode(buckets[idx], code);
+  }
+
+  const opPct = buckets.map((b) => (b.known === 0 ? null : (b.operational / b.known) * 100));
+  const funcPct = buckets.map((b) => (b.known === 0 ? null : (b.functional / b.known) * 100));
+
+  let currentStatus: ServiceStatus = 'operational';
+  if (latestCode) {
+    const s = decodeStatus(latestCode);
+    if (s !== 'nodata') currentStatus = s;
+  }
+
+  return { currentStatus, opPct, funcPct };
+}
+
+function currentStatusFromDailyRaw(dailyRaw: string | null): ServiceStatus | null {
+  if (!dailyRaw) return null;
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(dailyRaw);
+    const today = new Date().toISOString().slice(0, 10);
+    const code = Array.isArray(parsed)
+      ? (parsed as { date: string; status: string }[]).find((e) => e.date === today)?.status
+      : (parsed as Record<string, string>)[today];
+    if (!code) return null;
+    const s = decodeStatus(code);
+    return s === 'nodata' ? null : s;
+  } catch {
+    return null;
+  }
+}
+
+function readDailyHistoryFromRaw(
+  dailyRaw: string | null,
+  tzOffsetMinutes: number,
+): (ServiceStatus | 'nodata')[] {
+  const dates = getLast30IsoDates(tzOffsetMinutes);
+  if (!dailyRaw) return new Array(30).fill('nodata');
+  try {
+    const parsed = JSON.parse(dailyRaw);
     const byDate: Record<string, string> = {};
     if (Array.isArray(parsed)) {
       for (const e of parsed as { date: string; status: string }[]) {
@@ -98,11 +159,10 @@ async function readDailyHistory(serviceId: string, tzOffsetMinutes: number): Pro
     }
 
     if (tzOffsetMinutes === 0) {
-      return dates.map(d => decodeStatus(byDate[d] ?? 'nodata'));
+      return dates.map((d) => decodeStatus(byDate[d] ?? 'nodata'));
     }
 
-    // For non-UTC: each local date overlaps two UTC dates; take worst status
-    return dates.map(localDate => {
+    return dates.map((localDate) => {
       const localDateMs = new Date(`${localDate}T00:00:00Z`).getTime();
       let s1: string, s2: string;
       if (tzOffsetMinutes > 0) {
@@ -123,62 +183,64 @@ async function readDailyHistory(serviceId: string, tzOffsetMinutes: number): Pro
   }
 }
 
-// Reads current status from epoch-based minute data (m:{serviceId})
-async function getCurrentStatus(serviceId: string): Promise<ServiceStatus> {
+async function loadServiceCurrent(svc: ServiceDefinition): Promise<ServiceDefinition & {
+  status: ServiceStatus;
+  responseTime: number | null;
+  statusCode: null;
+}> {
+  const [minuteRaw, pingRaw] = await Promise.all([
+    fetchFromKV(`m:${svc.id}`),
+    fetchFromKV(`ping:${svc.id}`),
+  ]);
+  const minuteMap = parseMinuteMap(minuteRaw);
   const nowEpoch = Math.floor(Date.now() / 1000);
-
-  const raw = await fetchFromKV(`m:${serviceId}`);
-  if (!raw) {
-    // Fallback: check today's daily summary
-    const dailyRaw = await fetchFromKV(`daily:${serviceId}`);
-    if (dailyRaw) {
-      try {
-        const parsed = JSON.parse(dailyRaw);
-        const today = new Date().toISOString().slice(0, 10);
-        const code = Array.isArray(parsed)
-          ? (parsed as { date: string; status: string }[]).find(e => e.date === today)?.status
-          : (parsed as Record<string, string>)[today];
-        if (code) {
-          const s = decodeStatus(code);
-          if (s !== 'nodata') return s;
-        }
-      } catch { /* fall through */ }
-    }
-    return 'operational';
+  let status: ServiceStatus;
+  if (minuteMap) {
+    status = deriveFromMinuteMap(minuteMap, 0, nowEpoch).currentStatus;
+  } else {
+    const dailyRaw = await fetchFromKV(`daily:${svc.id}`);
+    status = currentStatusFromDailyRaw(dailyRaw) ?? 'operational';
   }
+  const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
+  return { ...svc, status, responseTime, statusCode: null };
+}
 
-  try {
-    const all: Record<string, string> = JSON.parse(raw);
+async function loadServiceFull(
+  svc: ServiceDefinition,
+  tzOffsetMinutes: number,
+): Promise<{
+  service: ServiceDefinition & { status: ServiceStatus; responseTime: number | null; statusCode: null };
+  history: (ServiceStatus | 'nodata')[];
+  opPct: (number | null)[];
+  funcPct: (number | null)[];
+}> {
+  const nowEpoch = Math.floor(Date.now() / 1000);
+  const [minuteRaw, dailyRaw, pingRaw] = await Promise.all([
+    fetchFromKV(`m:${svc.id}`),
+    fetchFromKV(`daily:${svc.id}`),
+    fetchFromKV(`ping:${svc.id}`),
+  ]);
 
-    // Find most recent entry at or before now
-    let latestEpoch = -1;
-    let latestCode = '';
-    for (const [epochStr, code] of Object.entries(all)) {
-      const epoch = parseInt(epochStr);
-      if (epoch <= nowEpoch && epoch > latestEpoch) {
-        latestEpoch = epoch;
-        latestCode = code;
-      }
-    }
+  const minuteMap = parseMinuteMap(minuteRaw);
+  const { currentStatus, opPct, funcPct } = deriveFromMinuteMap(minuteMap, tzOffsetMinutes, nowEpoch);
+  const status = minuteMap ? currentStatus : (currentStatusFromDailyRaw(dailyRaw) ?? 'operational');
+  const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
 
-    if (latestCode) {
-      const s = decodeStatus(latestCode);
-      if (s !== 'nodata') return s;
-    }
-    return 'operational';
-  } catch {
-    return 'operational';
-  }
+  return {
+    service: { ...svc, status, responseTime, statusCode: null },
+    history: readDailyHistoryFromRaw(dailyRaw, tzOffsetMinutes),
+    opPct,
+    funcPct,
+  };
 }
 
 function calculateOverallStatus(statuses: ServiceStatus[]): ServiceStatus {
-  if (statuses.some(s => s === 'down')) return 'down';
-  if (statuses.some(s => s === 'degraded')) return 'degraded';
+  if (statuses.some((s) => s === 'down')) return 'down';
+  if (statuses.some((s) => s === 'degraded')) return 'degraded';
   return 'operational';
 }
 
 export async function GET(request: NextRequest) {
-  // tzOffset drives local calendar day boundaries for history and uptime arrays
   const tzParam = request.nextUrl.searchParams.get('tzOffset');
   const tzOffsetMinutes = parseTimezoneOffsetParam(tzParam);
   const brandParam = request.nextUrl.searchParams.get('brand') as BrandId | null;
@@ -187,10 +249,9 @@ export async function GET(request: NextRequest) {
     const configRaw = await fetchFromKV('config:services');
 
     if (!configRaw) {
-      console.error('[API] KV config unavailable - pulse worker may not be running');
       return NextResponse.json({
         error: 'Configuration unavailable',
-        message: 'KV config:services not found. Ensure statuspage-pulse worker is deployed and running.'
+        message: 'KV config:services not found. Ensure statuspage-pulse worker is deployed and running.',
       }, { status: 503 });
     }
 
@@ -198,69 +259,52 @@ export async function GET(request: NextRequest) {
     try {
       const config: ServicesConfig = JSON.parse(configRaw);
       services = config.services;
-      console.log(`[API] Using ${services.length} services from KV config (updated: ${config.updatedAt})`);
-    } catch (e) {
-      console.error('[API] Failed to parse config from KV:', e);
+    } catch {
       return NextResponse.json({
         error: 'Configuration parse error',
-        message: 'Failed to parse config:services from KV.'
+        message: 'Failed to parse config:services from KV.',
       }, { status: 500 });
     }
 
     let servicesToUse = services;
     if (isValidBrandParam(brandParam)) {
       servicesToUse = filterServiceDefinitions(services, brandParam);
-      console.log(`[API] brand filter=${brandParam} services=${servicesToUse.length}/${services.length}`);
     }
 
     const currentOnly = request.nextUrl.searchParams.get('currentOnly') === 'true';
 
     if (currentOnly) {
-      const currentStatuses = await Promise.all(
-        servicesToUse.map(async (svc) => {
-          const [currentStatus, pingRaw] = await Promise.all([
-            getCurrentStatus(svc.id),
-            fetchFromKV(`ping:${svc.id}`),
-          ]);
-          const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
-          return { ...svc, status: currentStatus, responseTime, statusCode: null };
-        })
-      );
+      const currentStatuses = await Promise.all(servicesToUse.map(loadServiceCurrent));
 
       const data: CurrentStatusResponse = {
-        status: calculateOverallStatus(currentStatuses.map(s => s.status)),
+        status: calculateOverallStatus(currentStatuses.map((s) => s.status)),
         checkedAt: now.toISOString(),
         services: currentStatuses,
         history: {},
       };
 
-      console.log(`[API] currentOnly brand=${brandParam ?? 'all'} services=${currentStatuses.length}`);
       return NextResponse.json(data, {
-        headers: { 'Cache-Control': 'no-store' },
+        headers: { 'Cache-Control': CACHE_CURRENT },
       });
     }
 
     const history: Record<string, (ServiceStatus | 'nodata')[]> = {};
     const dailyUptime: Record<string, (number | null)[]> = {};
     const dailyFuncUptime: Record<string, (number | null)[]> = {};
-    const currentStatuses = await Promise.all(
-      servicesToUse.map(async (svc) => {
-        const [currentStatus, dailyHistory, { opPct, funcPct }] = await Promise.all([
-          getCurrentStatus(svc.id),
-          readDailyHistory(svc.id, tzOffsetMinutes),
-          readDailyUptimePct(svc.id, tzOffsetMinutes),
-        ]);
-        history[svc.id] = dailyHistory;
-        dailyUptime[svc.id] = opPct;
-        dailyFuncUptime[svc.id] = funcPct;
-        const pingRaw = await fetchFromKV(`ping:${svc.id}`);
-        const responseTime = pingRaw !== null ? parseInt(pingRaw, 10) : null;
-        return { ...svc, status: currentStatus, responseTime, statusCode: null };
-      })
+
+    const loaded = await Promise.all(
+      servicesToUse.map((svc) => loadServiceFull(svc, tzOffsetMinutes)),
     );
 
+    const currentStatuses = loaded.map(({ service, history: h, opPct, funcPct }) => {
+      history[service.id] = h;
+      dailyUptime[service.id] = opPct;
+      dailyFuncUptime[service.id] = funcPct;
+      return service;
+    });
+
     const data: StatusResponse = {
-      status: calculateOverallStatus(currentStatuses.map(s => s.status)),
+      status: calculateOverallStatus(currentStatuses.map((s) => s.status)),
       checkedAt: now.toISOString(),
       services: currentStatuses,
       history,
@@ -269,7 +313,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(data, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: { 'Cache-Control': CACHE_FULL },
     });
   } catch (error) {
     console.error('API Error:', error);

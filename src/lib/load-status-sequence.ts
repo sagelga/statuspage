@@ -22,11 +22,19 @@ export interface LoadStatusSequenceOptions {
   onUpdate: (data: StatusResponse) => void;
 }
 
+function scheduleIdle(task: () => void): void {
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(task, { timeout: 5000 });
+    return;
+  }
+  setTimeout(task, 0);
+}
+
 /**
  * Run the three-phase load sequence against /api/status.
  * 1. currentOnly — badges appear quickly (history omitted).
  * 2. brand-full — 30-day history for the active brand.
- * 3. all-full — full cross-brand payload for instant tab switches.
+ * 3. all-full — deferred cross-brand cache for instant tab switches.
  * Each phase merges into prior state via mergeStatusData.
  * @returns Flags indicating which phases returned OK responses
  */
@@ -61,12 +69,22 @@ export async function loadStatusSequence({
   }
 
   const allFullUrl = buildStatusApiUrl({ tzOffset: tz });
-  const fullRes = await fetchFn(allFullUrl);
-  if (fullRes.ok) {
-    const fullJson: StatusResponse = await fullRes.json();
-    onUpdate(mergeStatusData(getCurrent(), fullJson));
-    hadFull = true;
-  }
+  await new Promise<void>((resolve) => {
+    scheduleIdle(() => {
+      void (async () => {
+        try {
+          const fullRes = await fetchFn(allFullUrl);
+          if (fullRes.ok) {
+            const fullJson: StatusResponse = await fullRes.json();
+            onUpdate(mergeStatusData(getCurrent(), fullJson));
+            hadFull = true;
+          }
+        } finally {
+          resolve();
+        }
+      })();
+    });
+  });
 
   return { hadPriority, hadBrandFull, hadFull };
 }
