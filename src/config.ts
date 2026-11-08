@@ -13,7 +13,7 @@ export const SITE_CONFIG = {
   url:          'https://status.sagelga.com',
 };
 
-export type BrandId = 'byteside' | 'sagelga';
+export type BrandId = 'byteside' | 'sagelga' | 'thaipatmetal';
 
 export interface BrandMeta {
   id: BrandId;
@@ -31,6 +31,11 @@ export const BRANDS: BrandMeta[] = [
     id: 'sagelga',
     label: 'sagelga.com',
     description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์และบริการในเครือ sagelga',
+  },
+  {
+    id: 'thaipatmetal',
+    label: 'ไทยพัฒน์เมทัล',
+    description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์ไทยพัฒน์เมทัล',
   },
 ];
 
@@ -58,10 +63,16 @@ export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = {
     { id: 'sagelga-static',     name: 'Static',               icon: 'image',      url: 'https://static.sagelga.com/statuspulse.webp' },
     { id: 'sagelga-learn',      name: 'Learn',                icon: 'book-open',  url: 'https://learn.sagelga.com' },
   ],
+  thaipatmetal: [
+    // Services loaded from KV config:services (pulse worker)
+    // These entries match the pulse config for display purposes only
+    { id: 'thaipatmetal-frontend', name: 'เว็บไซต์หลัก', icon: 'globe', url: 'https://thaipatmetal.com' },
+  ],
 };
 
 // Flat list used by the API to read/write all service statuses
 export const SERVICES: ServiceDefinition[] = [
   ...SERVICES_BY_BRAND.byteside,
   ...SERVICES_BY_BRAND.sagelga,
+  ...SERVICES_BY_BRAND.thaipatmetal,
 ];

@@ -14,7 +14,7 @@
 
 /* ── Top row ── */
 .nav-top {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .nav-top-inner {
@@ -58,12 +58,12 @@
 .nav-top-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 /* ── Bottom row ── */
 .nav-bottom {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .nav-bottom-inner {
@@ -100,13 +100,13 @@
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.2px;
   line-height: 1.5;
 }
 
 .nav-link:hover {
   color: #ffffff;
-  border-bottom-color: rgba(255, 255, 255, 0.4);
+  border-bottom-color: rgba(255, 255, 255, 0.45);
 }
 
 .nav-link.active {
@@ -202,4 +202,21 @@
 
 @media (max-width: 480px) {
   .nav-top-inner { padding: 0 0.75rem; }
+  .nav-logo-img { height: 24px; max-width: 80px; }
+  .nav-logo-text { font-size: 1.05rem; }
+}
+
+/* Very narrow phones: stack the brand pill under the logo instead of
+   squeezing three brands into one row. */
+@media (max-width: 360px) {
+  .nav-top-inner {
+    height: auto;
+    min-height: 52px;
+    padding: 6px 0.75rem;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nav-top-right { width: 100%; }
+  .nav-logo-img { max-width: 96px; }
+  .nav-logo-text { font-size: 1rem; white-space: nowrap; }
 }
