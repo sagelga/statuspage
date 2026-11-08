@@ -5,14 +5,14 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwind-css)](https://tailwindcss.com)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-f38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
 
-Real-time status monitoring page for ByteSide.one and sagelga.com services — Thai technology and gaming brands.
+Real-time status monitoring page for ByteSide.one, sagelga.com, and Thai Pat Metal (ไทยพัฒน์เมทัล) services.
 
 ![ByteSide logo](./public/static/img/logo-large.png)
 
 ## Features
 
 - **Real-time monitoring** — Service health badges with response times from Cloudflare KV
-- **Dual-brand support** — ByteSide.one (5 services) and sagelga.com (7 services) via brand toggle
+- **Multi-brand support** — ByteSide.one (5 services), sagelga.com (7 services), and Thai Pat Metal (1 service) via brand toggle
 - **30-day history** — Daily uptime bars and per-minute mosaic drill-down
 - **Fast initial load** — Three-phase fetch: current badges → brand history → cross-brand cache
 - **Workers runtime** — OpenNext adapter on Cloudflare Workers (Node.js runtime), KV-backed API routes
@@ -28,6 +28,7 @@ Services are defined in the **statuspage-pulse** worker and stored in KV (`confi
 |-------|----------|
 | ByteSide.one | Cloudflare, Website, R2 Content, Notion Sync, Notion DB |
 | sagelga.com | sagelga.com, Mahjong Hands, Telegram Thai, Docs, Redirect, Static, Learn |
+| ไทยพัฒน์เมทัล | เว็บไซต์หลัก (thaipatmetal.com) |
 
 ## Getting Started
 
@@ -94,7 +95,7 @@ Query params:
 
 | Param | Purpose |
 |-------|---------|
-| `?brand=sagelga` | Initial brand selection |
+| `?brand=thaipatmetal` | Initial brand selection (`byteside`, `sagelga`, or `thaipatmetal`) |
 | `?tzOffset=420` | Client timezone offset (minutes east of UTC) |
 | `?currentOnly=true` | Fast path: badges only, no history |
 
@@ -165,7 +166,7 @@ Both routes run on **Cloudflare Workers** (Node.js runtime) through the OpenNext
 | Query | Description |
 |-------|-------------|
 | `tzOffset` | Client offset in minutes (default 0, clamped ±12h) |
-| `brand` | `byteside` or `sagelga` — filter services |
+| `brand` | `byteside`, `sagelga`, or `thaipatmetal` — filter services |
 | `currentOnly` | `true` — skip history/uptime (fast badges) |
 
 `/api/status` loads the service list with `loadServicesConfig()` and delegates to `buildCurrentStatusResponse()` or `buildFullStatusResponse()`.

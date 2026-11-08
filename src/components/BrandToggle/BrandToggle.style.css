@@ -71,6 +71,31 @@
   box-shadow: 0 1px 6px rgba(82, 0, 106, 0.35);
 }
 
+/* Three brands on narrow phones: tighten the pill so it stays inside the bar */
+@media (max-width: 480px) {
+  .nav-brand-pill {
+    height: 32px;
+    padding: 2px;
+  }
+  .nav-brand-pill .brand-toggle-btn {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    letter-spacing: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-brand-pill {
+    width: 100%;
+    justify-content: center;
+  }
+  .nav-brand-pill .brand-toggle-btn {
+    flex: 1;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.35rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brand-toggle-btn { transition: background 0.01ms, color 0.01ms; }
   .brand-toggle-btn:active { transform: none; }

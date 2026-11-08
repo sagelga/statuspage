@@ -44,7 +44,9 @@ export function useStatusData(initialBrand: BrandId): UseStatusDataResult {
 
   // Brand-specific palette lives on <html> so CSS can theme the whole document.
   useEffect(() => {
-    document.documentElement.classList.toggle('sagelga-brand', activeBrand === 'sagelga');
+    const root = document.documentElement;
+    root.classList.toggle('sagelga-brand', activeBrand === 'sagelga');
+    root.classList.toggle('thaipatmetal-brand', activeBrand === 'thaipatmetal');
   }, [activeBrand]);
 
   useEffect(

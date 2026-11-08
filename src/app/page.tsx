@@ -1,10 +1,12 @@
 import type { BrandId } from '@/config';
+import { isValidBrandParam } from '@/lib/brand-filter';
 import StatusPageClient from '@/components/StatusPageClient';
 
 /** `?brand=` is read on the server so SSR and hydration agree. */
 function parseBrand(value: string | string[] | undefined): BrandId {
   const brand = Array.isArray(value) ? value[0] : value;
-  return brand === 'sagelga' ? 'sagelga' : 'byteside';
+  if (typeof brand === 'string' && isValidBrandParam(brand)) return brand;
+  return 'byteside';
 }
 
 export default async function Page({

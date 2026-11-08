@@ -6,7 +6,7 @@ Next.js 16.4.5 status page for **ByteSide.one** and **sagelga.com**. Displays re
 
 ### Key Features
 
-- Dual-brand toggle (ByteSide / sagelga) with URL `?brand=` support
+- Multi-brand toggle (ByteSide / sagelga / ไทยพัฒน์เมทัล) with URL `?brand=` support
 - Three-phase client load for fast badges before full history
 - 30-day daily bars + 1440-cell minute mosaic per service/day
 - Thai UI, light/dark theme, cookie consent, auto-refresh timer

@@ -1,7 +1,9 @@
 /**
  * Brand-scoped filtering for KV service lists and API query params.
  */
-import { SERVICES_BY_BRAND, BrandId } from '@/config';
+import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
+
+const BRAND_IDS = new Set<string>(BRANDS.map((brand) => brand.id));
 
 /**
  * Keep only services that belong to the given brand.
@@ -23,5 +25,5 @@ export function filterServicesByBrand<T extends { id: string }>(
  * @returns True when brand is a known BrandId
  */
 export function isValidBrandParam(brand: string | null): brand is BrandId {
-  return brand === 'byteside' || brand === 'sagelga';
+  return brand !== null && BRAND_IDS.has(brand);
 }

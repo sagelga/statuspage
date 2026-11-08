@@ -70,7 +70,8 @@ test.describe('Status Page — service list', () => {
       const brand = url.searchParams.get('brand');
       const currentOnly = url.searchParams.get('currentOnly') === 'true';
       let delay = 0;
-      if (currentOnly && brand === 'sagelga') delay = 250;
+      // Long enough that the loading badge is observable after the tab click.
+      if (currentOnly && brand === 'sagelga') delay = 2000;
       else if (brand === 'sagelga') delay = 2000;
       else if (currentOnly && brand === 'byteside') delay = 100;
       else delay = 500;
@@ -101,7 +102,7 @@ test.describe('Status Page — service list', () => {
     await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
 
     const sagelgaRow = pom.serviceRows.filter({ has: page.locator('.component-name', { hasText: 'sagelga.com' }) });
-    await expect(sagelgaRow.locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+    await expect(sagelgaRow.locator('.badge.operational')).toBeVisible({ timeout: 4000 });
     await expect(sagelgaRow.locator('.badge')).not.toHaveClass(/loading/);
   });
 
@@ -192,6 +193,17 @@ test.describe('Status Page — service list', () => {
   test('renders all 5 service rows', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.serviceRows).toHaveCount(5);
+  });
+
+  test('brand toggle switches to the thaipatmetal frontend service', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    await page.getByRole('tab', { name: 'ไทยพัฒน์เมทัล' }).click();
+
+    await expect(pom.serviceRows).toHaveCount(1);
+    await expect(pom.serviceRows.locator('.component-name')).toHaveText(['เว็บไซต์หลัก']);
+
+    await expect(pom.serviceRows.locator('.badge.operational')).toHaveCount(1, { timeout: 5000 });
+    await expect(pom.serviceRows.first().locator('.uptime-bar.operational').first()).toBeVisible();
   });
 
   test('every service row shows a name', async ({ page }) => {
