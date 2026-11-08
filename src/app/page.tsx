@@ -59,17 +59,13 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   },
 ];
 
-function getInitialBrand(): BrandId {
-  if (typeof window === 'undefined') return 'byteside';
-  const params = new URLSearchParams(window.location.search);
-  const brandParam = params.get('brand');
-  return isValidBrandParam(brandParam) ? brandParam : 'byteside';
-}
-
 export default function Home() {
   const [data, setData] = useState<StatusResponse | null>(null);
   const [error, setError] = useState(false);
-  const [activeBrand, setActiveBrand] = useState<BrandId>(getInitialBrand);
+  // Always start from byteside so SSR and the first client render match.
+  // The URL brand is applied after mount (deep-link support without hydration errors).
+  const [activeBrand, setActiveBrand] = useState<BrandId>('byteside');
+  const [brandResolved, setBrandResolved] = useState(false);
   const [brandFading, setBrandFading] = useState(false);
   const dataRef = useRef<StatusResponse | null>(null);
   const initialLoadDone = useRef(false);
@@ -87,6 +83,16 @@ export default function Home() {
     root.classList.toggle('thaipatmetal-brand', activeBrand === 'thaipatmetal');
   }, [activeBrand]);
 
+  // Resolve ?brand= after hydration so the server-rendered byteside markup
+  // remains valid, then let the load effect below use the resolved brand.
+  useEffect(() => {
+    const brandParam = new URLSearchParams(window.location.search).get('brand');
+    if (isValidBrandParam(brandParam) && brandParam !== 'byteside') {
+      setActiveBrand(brandParam);
+    }
+    setBrandResolved(true);
+  }, []);
+
   const applyData = useCallback((next: StatusResponse) => {
     dataRef.current = next;
     setData(next);
@@ -101,9 +107,12 @@ export default function Home() {
       if (currentRes.ok) {
         const currentJson: CurrentStatusResponse = await currentRes.json();
         applyData(mergeStatusData(dataRef.current, currentJson));
+      } else {
+        setError(true);
       }
     } catch (err) {
       console.error('Current status fetch failed:', err);
+      setError(true);
     }
   }, [applyData]);
 
@@ -115,9 +124,12 @@ export default function Home() {
       if (fullRes.ok) {
         const fullJson: StatusResponse = await fullRes.json();
         applyData(mergeStatusData(dataRef.current, fullJson));
+      } else {
+        setError(true);
       }
     } catch (err) {
       console.error('Brand full status fetch failed:', err);
+      setError(true);
     }
   }, [applyData]);
 
@@ -139,16 +151,21 @@ export default function Home() {
           const fullJson: StatusResponse = await fullRes.json();
           applyData(mergeStatusData(dataRef.current, fullJson));
           lastFullRefreshRef.current = now;
+        } else {
+          setError(true);
         }
       }
     } catch (err) {
       console.error(err);
-      if (!dataRef.current) setError(true);
+      // Keep cached data visible, but tell the user it may be stale.
+      setError(true);
     }
   }, [applyData]);
 
   // Mount: three-phase load — fast badges, then brand history, then all-brand cache
+  // Wait until the post-hydration URL brand resolution has run.
   useEffect(() => {
+    if (!brandResolved) return;
     let cancelled = false;
     (async () => {
       try {
@@ -165,14 +182,14 @@ export default function Home() {
         if (!cancelled && !hadFull && !dataRef.current) setError(true);
       } catch (err) {
         console.error(err);
-        if (!cancelled && !dataRef.current) setError(true);
+        if (!cancelled) setError(true);
       } finally {
         if (!cancelled) initialLoadDone.current = true;
       }
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [brandResolved]);
 
   // activeBrand changes (incl. URL ?brand=): top up missing services/history for that brand
   useEffect(() => {
@@ -218,14 +235,21 @@ export default function Home() {
   const affectedService = brandServices?.find(s => s.status === 'down')
     ?? brandServices?.find(s => s.status === 'degraded')
     ?? null;
+  const downCount = brandServices?.filter(s => s.status === 'down').length ?? 0;
+  const affectedCount = brandServices?.filter(s => s.status !== 'operational').length ?? 0;
 
   const uptime30d = (() => {
     if (!data?.dailyUptime) return null;
-    const values = visibleServices.flatMap(svc =>
-      (data.dailyUptime?.[svc.id] ?? []).filter((v): v is number => typeof v === 'number' && Number.isFinite(v)),
-    );
-    if (values.length === 0) return null;
-    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    // Average each service first so a service with more recorded days cannot
+    // dominate the brand-wide figure. Require data for every visible service.
+    const perService = visibleServices.map(svc => {
+      const values = (data.dailyUptime?.[svc.id] ?? [])
+        .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+      if (values.length === 0) return null;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    });
+    if (perService.some(value => value === null)) return null;
+    const average = (perService as number[]).reduce((sum, value) => sum + value, 0) / perService.length;
     return Math.round(average * 100) / 100;
   })();
 
@@ -250,6 +274,8 @@ export default function Home() {
             responseTime: affectedService.responseTime,
             status: affectedService.status,
           } : null}
+          affectedCount={affectedCount}
+          downCount={downCount}
           uptime30d={uptime30d}
           onRefresh={loadFullStatus}
         />

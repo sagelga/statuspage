@@ -84,6 +84,9 @@ export default function RootLayout({
                 html.setAttribute('data-theme', isDark ? 'dark' : 'light');
                 html.classList.toggle('dark-theme', isDark);
                 html.classList.toggle('light-theme', !isDark);
+                const brand = new URLSearchParams(window.location.search).get('brand');
+                html.classList.toggle('sagelga-brand', brand === 'sagelga');
+                html.classList.toggle('thaipatmetal-brand', brand === 'thaipatmetal');
               })();
             `,
           }}

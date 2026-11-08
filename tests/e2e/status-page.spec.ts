@@ -185,7 +185,7 @@ test.describe('Status Page — hero banner', () => {
     await expect(pom.heroTitle).toHaveText('บางบริการทำงานช้าลง');
     await expect(pom.heroSub).toContainText(degraded.services[0].name);
     await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('1');
-    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการต้องดู');
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการที่มีปัญหา');
   });
 
   test('shows down banner when a service is down, naming the service', async ({ page }) => {
@@ -204,7 +204,7 @@ test.describe('Status Page — hero banner', () => {
     await expect(pom.heroBanner).toHaveClass(/down/);
     await expect(pom.heroTitle).toHaveText('มีบริการที่ใช้งานไม่ได้');
     await expect(pom.heroSub).toContainText(down.services[0].name);
-    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการล่ม');
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการที่ใช้งานไม่ได้');
   });
 
   test('shows error banner when API call fails — and never the down banner', async ({ page }) => {
@@ -516,8 +516,11 @@ test.describe('Status Page — service list', () => {
     await expect(degradedBadge).toHaveText('มีปัญหา');
 
     // Today's bar must agree with the live badge, even though the mock says 100%.
+    // Wait for the real bars (not the disabled loading placeholder).
+    await expect(pom.serviceRows.nth(1).locator('.uptime-bars')).toHaveClass(/bars-loaded/);
     const todayBar = pom.serviceRows.nth(1).locator('.uptime-bar').last();
     await expect(todayBar).toHaveClass(/degraded/);
+    await expect(todayBar).not.toHaveClass(/status-loaded/);
   });
 });
 

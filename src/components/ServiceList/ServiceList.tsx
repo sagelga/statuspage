@@ -259,7 +259,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
           {loadError && hasServices && (
             <p className="stale-hint" role="status">
               <span className="dot" aria-hidden="true" />
-              ข้อมูลล่าสุดที่ได้รับ
+              ข้อมูลอาจไม่เป็นปัจจุบัน · แสดงข้อมูลล่าสุดที่บันทึกไว้
             </p>
           )}
         </div>
@@ -419,6 +419,8 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                             title={DATE_STRS[i]}
                             aria-label={`${DATE_STRS[i]} · ${BAR_STATUS_LABELS[effectiveSt]}`}
                             aria-pressed={isSelected}
+                            aria-expanded={isSelected}
+                            aria-controls={isSelected ? `mosaic-panel-${def.id}` : undefined}
                           />
                         );
                       })}
@@ -431,7 +433,7 @@ export const ServiceList: React.FC<ServiceListProps> = ({
                     </div>
 
                     {isExpanded && expanded && (
-                      <div className="mosaic-inline-panel">
+                      <div className="mosaic-inline-panel" id={`mosaic-panel-${def.id}`}>
                         <div className="mosaic-inline-header">
                           <span className="mosaic-inline-date">
                             {expanded.label}

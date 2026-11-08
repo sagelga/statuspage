@@ -64,8 +64,10 @@
 /* Dark theme */
 :root.dark-theme .no-incidents-title { color: #4ade80; }
 :root.dark-theme .no-incidents-icon { color: #4ade80; }
+:root.dark-theme .no-incidents-day { background: #22c55e; opacity: 0.9; }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light-theme) .no-incidents-title { color: #4ade80; }
   :root:not(.light-theme) .no-incidents-icon { color: #4ade80; }
+  :root:not(.light-theme) .no-incidents-day { background: #22c55e; opacity: 0.9; }
 }

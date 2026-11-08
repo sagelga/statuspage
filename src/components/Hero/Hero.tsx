@@ -17,6 +17,8 @@ interface HeroProps {
   error?: boolean;
   serviceCount: number;
   affectedService?: AffectedService | null;
+  affectedCount?: number;
+  downCount?: number;
   uptime30d?: number | null;
   onRefresh?: () => void;
 }
@@ -31,8 +33,8 @@ const TITLES: Record<DisplayStatus, string> = {
 
 const KICKERS: Record<DisplayStatus, string> = {
   operational: 'สถานะปัจจุบัน',
-  degraded: 'ต้องดูใกล้ชิด',
-  down: 'กำลังตรวจสอบ',
+  degraded: 'พบความหน่วง',
+  down: 'ต้องการความสนใจ',
   loading: 'กรุณารอสักครู่',
   error: 'เชื่อมต่อข้อมูลไม่ได้',
 };
@@ -78,12 +80,15 @@ export const Hero: React.FC<HeroProps> = ({
   error = false,
   serviceCount,
   affectedService = null,
+  affectedCount = 0,
+  downCount = 0,
   uptime30d = null,
   onRefresh,
 }) => {
   const displayStatus: DisplayStatus = error ? 'error' : status;
   const checkedTime = formatCheckedAt(checkedAt);
   const responseTime = affectedService ? formatResponseTime(affectedService.responseTime) : null;
+  const affectedTotal = Math.max(affectedCount, affectedService ? 1 : 0);
 
   let sub: React.ReactNode;
   let aside: React.ReactNode = null;
@@ -97,7 +102,7 @@ export const Hero: React.FC<HeroProps> = ({
               ตรวจสอบล่าสุด <strong>{checkedTime} น.</strong> ·{' '}
             </>
           ) : null}
-          {serviceCount} บริการ
+          {serviceCount} บริการที่ตรวจสอบ
         </>
       );
       if (uptime30d !== null || onRefresh) {
@@ -106,7 +111,7 @@ export const Hero: React.FC<HeroProps> = ({
             {uptime30d !== null && (
               <div className="hero-uptime">
                 <b>{uptime30d.toFixed(2)}%</b>
-                <span>พร้อมใช้งาน 30 วัน</span>
+                <span>ความพร้อมใช้งาน 30 วัน</span>
               </div>
             )}
             {onRefresh && (
@@ -123,7 +128,9 @@ export const Hero: React.FC<HeroProps> = ({
     case 'degraded':
       sub = (
         <>
-          {affectedService ? (
+          {affectedTotal > 1 ? (
+            <>มี <strong>{affectedTotal} บริการ</strong> ที่ต้องดู ·{' '}</>
+          ) : affectedService ? (
             <>
               <strong>{affectedService.name}</strong>
               {responseTime ? (
@@ -142,8 +149,8 @@ export const Hero: React.FC<HeroProps> = ({
       aside = (
         <div className="hero-aside">
           <div className="hero-uptime">
-            <b>1</b>
-            <span>บริการต้องดู</span>
+            <b>{affectedTotal}</b>
+            <span>บริการที่มีปัญหา</span>
           </div>
           {onRefresh && (
             <button type="button" className="hero-refresh" onClick={onRefresh}>
@@ -158,7 +165,9 @@ export const Hero: React.FC<HeroProps> = ({
     case 'down':
       sub = (
         <>
-          {affectedService ? (
+          {downCount > 1 ? (
+            <>มี <strong>{downCount} บริการ</strong> ที่ใช้งานไม่ได้ ·{' '}</>
+          ) : affectedService ? (
             <>
               <strong>{affectedService.name}</strong> ไม่ตอบสนองในขณะนี้ ·{' '}
             </>
@@ -171,8 +180,8 @@ export const Hero: React.FC<HeroProps> = ({
       aside = (
         <div className="hero-aside">
           <div className="hero-uptime">
-            <b>1</b>
-            <span>บริการล่ม</span>
+            <b>{Math.max(downCount, 1)}</b>
+            <span>บริการที่ใช้งานไม่ได้</span>
           </div>
           {onRefresh && (
             <button type="button" className="hero-refresh" onClick={onRefresh}>
@@ -185,17 +194,17 @@ export const Hero: React.FC<HeroProps> = ({
       break;
 
     case 'loading':
-      sub = 'กำลังรวบรวมผลตรวจล่าสุด — ใช้เวลาไม่กี่วินาที';
+      sub = 'กำลังรวบรวมผลการตรวจสอบล่าสุด';
       break;
 
     case 'error':
     default:
-      sub = 'เชื่อมต่อข้อมูลสถานะไม่ได้ — ข้อมูลที่เห็นอาจไม่ใช่ข้อมูลล่าสุด และไม่ได้หมายความว่าบริการล่ม';
+      sub = 'เชื่อมต่อข้อมูลสถานะไม่ได้ ข้อมูลที่เห็นอาจไม่ใช่ข้อมูลล่าสุด และไม่ได้หมายความว่าบริการล่ม';
       break;
   }
 
   return (
-    <section className="hero" aria-live="polite" aria-busy={displayStatus === 'loading'}>
+    <section className="hero" aria-busy={displayStatus === 'loading'}>
       <div className={`hero-banner ${displayStatus}`}>
         <div
           className="hero-icon"
@@ -207,7 +216,7 @@ export const Hero: React.FC<HeroProps> = ({
             <span className="hero-live-dot" aria-hidden="true"></span>
             {KICKERS[displayStatus]}
           </p>
-          <h1 className="hero-title">{TITLES[displayStatus]}</h1>
+          <h1 className="hero-title" aria-live="polite" aria-atomic="true">{TITLES[displayStatus]}</h1>
           <p className="hero-sub">{sub}</p>
           {displayStatus === 'error' && onRefresh && (
             <button type="button" className="hero-retry" onClick={onRefresh}>

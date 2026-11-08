@@ -41,10 +41,14 @@
 .component-row.status-down .component-icon { color: var(--err); }
 .component-name-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 0.1rem; }
 .component-name { min-width: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
-.component-url { display: block; max-width: 100%; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.4; color: var(--text-muted); opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.component-url { display: block; max-width: 100%; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.4; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .component-meta { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 
 .uptime-row { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.25rem; }
+@media (min-width: 641px) {
+  /* Align the history block with the service name, past the icon gutter. */
+  .uptime-row { padding-left: calc(20px + 0.75rem); }
+}
 .uptime-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.1rem; }
 .uptime-footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
 .uptime-label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); }
@@ -53,7 +57,7 @@
 .uptime-pct.is-warn b { color: var(--warn-text); }
 .uptime-pct.is-err b { color: var(--err-text); }
 .uptime-pct.is-none b { color: var(--text-muted); }
-.uptime-hint { font-size: 0.68rem; color: var(--text-muted); opacity: 0.8; font-weight: 400; letter-spacing: 0.01em; }
+.uptime-hint { font-size: 0.68rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0.01em; }
 
 .section-title-row { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
 .history-loading-hint {
@@ -166,9 +170,8 @@
 }
 .info-tooltip-url {
   font-family: var(--font-mono); font-size: 0.72rem;
-  color: var(--brand) !important; word-break: break-all; line-height: 1.4;
+  color: var(--link) !important; word-break: break-all; line-height: 1.4;
 }
-:root.sagelga-brand .info-tooltip-url { color: var(--accent) !important; }
 @media (max-width: 640px) {
   .info-tooltip {
     min-width: 180px;
@@ -219,7 +222,7 @@
 }
 .component-row .uptime-bar:focus-visible,
 .uptime-bars.has-selection .uptime-bar:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--brand-light);
   outline-offset: 2px;
   opacity: 1;
   transform: scaleY(1.1);
@@ -413,7 +416,7 @@
   .uptime-legend { font-size: 0.875rem; }
   .mosaic-inline-date, .mosaic-inline-pct { font-size: 0.875rem; }
   .component-row .uptime-bars { height: 32px; gap: 2.5px; }
-  .component-row .uptime-bar { min-width: 8px; border-radius: 6px; }
+  .component-row .uptime-bar { min-width: 0; border-radius: 6px; }
   .load-error-panel { padding: 2.25rem 1.25rem; }
   /* Slightly taller cells on small screens for easier reading */
   .mosaic-half-grid { grid-auto-rows: 4px; gap: 1px; }

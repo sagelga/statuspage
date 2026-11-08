@@ -60,10 +60,12 @@ export const MOCK_STATUS_FULL: StatusResponse = {
   dailyUptime: {
     ...MOCK_STATUS_BYTESIDE.dailyUptime,
     ...MOCK_STATUS_SAGELGA.dailyUptime,
+    ...MOCK_STATUS_THAIPATMETAL.dailyUptime,
   },
   dailyFuncUptime: {
     ...MOCK_STATUS_BYTESIDE.dailyFuncUptime,
     ...MOCK_STATUS_SAGELGA.dailyFuncUptime,
+    ...MOCK_STATUS_THAIPATMETAL.dailyFuncUptime,
   },
 };
 

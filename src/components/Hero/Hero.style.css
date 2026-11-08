@@ -39,24 +39,24 @@
 .hero-banner.operational {
   --hero-accent: var(--ok);
   --hero-accent-soft: var(--ok-bg);
-  --hero-card-bg: color-mix(in srgb, var(--ok-bg) 45%, var(--card-bg));
-  --hero-card-border: color-mix(in srgb, var(--ok) 22%, var(--card-border));
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: var(--ok-text);
 }
 
 .hero-banner.degraded {
   --hero-accent: var(--warn);
   --hero-accent-soft: var(--warn-bg);
-  --hero-card-bg: color-mix(in srgb, var(--warn-bg) 45%, var(--card-bg));
-  --hero-card-border: color-mix(in srgb, var(--warn) 22%, var(--card-border));
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: var(--warn-text);
 }
 
 .hero-banner.down {
   --hero-accent: var(--err);
   --hero-accent-soft: var(--err-bg);
-  --hero-card-bg: color-mix(in srgb, var(--err-bg) 45%, var(--card-bg));
-  --hero-card-border: color-mix(in srgb, var(--err) 22%, var(--card-border));
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: var(--err-text);
 }
 
@@ -234,24 +234,24 @@
 :root.dark-theme .hero-banner.operational {
   --hero-accent: #4ade80;
   --hero-accent-soft: rgba(34, 197, 94, 0.16);
-  --hero-card-bg: rgba(22, 163, 74, 0.1);
-  --hero-card-border: rgba(74, 222, 128, 0.32);
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: #4ade80;
 }
 
 :root.dark-theme .hero-banner.degraded {
   --hero-accent: #facc15;
   --hero-accent-soft: rgba(202, 138, 4, 0.18);
-  --hero-card-bg: rgba(202, 138, 4, 0.1);
-  --hero-card-border: rgba(250, 204, 21, 0.32);
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: #facc15;
 }
 
 :root.dark-theme .hero-banner.down {
   --hero-accent: #f87171;
   --hero-accent-soft: rgba(220, 38, 38, 0.18);
-  --hero-card-bg: rgba(220, 38, 38, 0.1);
-  --hero-card-border: rgba(248, 113, 113, 0.32);
+  --hero-card-bg: var(--card-bg);
+  --hero-card-border: var(--card-border);
   --hero-title: #f87171;
 }
 
@@ -303,24 +303,24 @@
   :root:not(.light-theme) .hero-banner.operational {
     --hero-accent: #4ade80;
     --hero-accent-soft: rgba(34, 197, 94, 0.16);
-    --hero-card-bg: rgba(22, 163, 74, 0.1);
-    --hero-card-border: rgba(74, 222, 128, 0.32);
+    --hero-card-bg: var(--card-bg);
+    --hero-card-border: var(--card-border);
     --hero-title: #4ade80;
   }
 
   :root:not(.light-theme) .hero-banner.degraded {
     --hero-accent: #facc15;
     --hero-accent-soft: rgba(202, 138, 4, 0.18);
-    --hero-card-bg: rgba(202, 138, 4, 0.1);
-    --hero-card-border: rgba(250, 204, 21, 0.32);
+    --hero-card-bg: var(--card-bg);
+    --hero-card-border: var(--card-border);
     --hero-title: #facc15;
   }
 
   :root:not(.light-theme) .hero-banner.down {
     --hero-accent: #f87171;
     --hero-accent-soft: rgba(220, 38, 38, 0.18);
-    --hero-card-bg: rgba(220, 38, 38, 0.1);
-    --hero-card-border: rgba(248, 113, 113, 0.32);
+    --hero-card-bg: var(--card-bg);
+    --hero-card-border: var(--card-border);
     --hero-title: #f87171;
   }
 
