@@ -9,15 +9,11 @@ import "./CookieConsentBanner.css";
 const CookieConsentBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const prefs = getCookiePreferences();
-    if (!prefs.consentGiven) {
-      const timer = setTimeout(() => setIsVisible(true), 400);
-      return () => clearTimeout(timer);
-    }
+    if (getCookiePreferences().consentGiven) return;
+    const timer = setTimeout(() => setIsVisible(true), 400);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleAcceptAll = () => {
@@ -44,8 +40,6 @@ const CookieConsentBanner: React.FC = () => {
     setShowSettings(false);
     setIsVisible(false);
   };
-
-  if (!mounted) return null;
 
   return (
     <>

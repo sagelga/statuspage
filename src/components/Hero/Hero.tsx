@@ -11,10 +11,13 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ status = 'loading', checkedAt, error }) => {
   if (error) {
+    const ErrorIcon = HeroIcons.down;
     return (
       <div className="hero">
         <div className="hero-banner down">
-          <div className="hero-icon" dangerouslySetInnerHTML={{ __html: HeroIcons.down }}></div>
+          <div className="hero-icon">
+            <ErrorIcon />
+          </div>
           <div className="hero-text">
             <h1 className="hero-title">ไม่สามารถโหลดสถานะได้</h1>
             <p className="hero-sub">กรุณาลองรีเฟรชหน้าเว็บ</p>
@@ -26,16 +29,27 @@ export const Hero: React.FC<HeroProps> = ({ status = 'loading', checkedAt, error
 
   if (status === 'operational' || status === 'loading') return null;
 
+  const Icon = status === 'degraded' ? HeroIcons.degraded : HeroIcons.down;
+
   return (
     <div className="hero">
       <div className={`hero-banner ${status}`}>
-        <div className="hero-icon" dangerouslySetInnerHTML={{ __html: HeroIcons[status as ServiceStatus] || '' }}></div>
+        <div className="hero-icon">
+          <Icon />
+        </div>
         <div className="hero-text">
-          <h1 className="hero-title">{HeroTitles[status as ServiceStatus] || status}</h1>
+          <h1 className="hero-title">{HeroTitles[status] || status}</h1>
           <p className="hero-sub">
-            ตรวจสอบล่าสุด: {checkedAt ? new Date(checkedAt).toLocaleString('th-TH', {
-              year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-            }) : '—'}
+            ตรวจสอบล่าสุด:{' '}
+            {checkedAt
+              ? new Date(checkedAt).toLocaleString('th-TH', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '—'}
           </p>
         </div>
       </div>

@@ -70,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
+    <html lang="th" suppressHydrationWarning className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

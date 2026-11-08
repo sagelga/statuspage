@@ -1,68 +1,90 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
 import './RefreshTimer.style.css';
 
 interface RefreshTimerProps {
+  /** ISO timestamp of the data currently displayed. */
   lastUpdated: string;
+  /** Seconds between refreshes (default 60). */
   refreshInterval?: number;
   onRefresh?: () => void;
 }
 
-export const RefreshTimer: React.FC<RefreshTimerProps> = ({ lastUpdated, refreshInterval = 60, onRefresh }) => {
-  const [remaining, setRemaining] = useState(refreshInterval);
+const MIN_REFRESH_GAP_MS = 5_000;
+
+/**
+ * Countdown ring that calls `onRefresh` once the data is older than
+ * `refreshInterval`. Derived from `lastUpdated`, so returning to a tab with
+ * stale data refreshes on the next tick instead of waiting for a full cycle.
+ */
+export const RefreshTimer: React.FC<RefreshTimerProps> = ({
+  lastUpdated,
+  refreshInterval = 60,
+  onRefresh,
+}) => {
+  const [remaining, setRemaining] = useState<number | null>(null);
   const [flashing, setFlashing] = useState(false);
-  const isInitialMount = useRef(true);
+  const onRefreshRef = useRef(onRefresh);
+  const deadlineRef = useRef(0);
+  const lastRefreshAtRef = useRef(0);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
+  useEffect(() => {
+    const updatedAt = Date.parse(lastUpdated);
+    const base = Number.isNaN(updatedAt) ? Date.now() : updatedAt;
+    deadlineRef.current = base + refreshInterval * 1000;
+  }, [lastUpdated, refreshInterval]);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      const remainingMs = deadlineRef.current - now;
+
+      if (remainingMs <= 0) {
+        // A payload whose checkedAt is already stale must not trigger a
+        // refresh loop when every response carries the same stale timestamp.
+        if (now - lastRefreshAtRef.current < MIN_REFRESH_GAP_MS) {
+          setRemaining(
+            Math.max(
+              1,
+              Math.ceil((MIN_REFRESH_GAP_MS - (now - lastRefreshAtRef.current)) / 1000),
+            ),
+          );
+          return;
+        }
+
+        lastRefreshAtRef.current = now;
+        deadlineRef.current = now + refreshInterval * 1000;
+        setRemaining(refreshInterval);
+        setFlashing(true);
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(() => setFlashing(false), 500);
+        onRefreshRef.current?.();
+        return;
+      }
+
+      setRemaining(Math.ceil(remainingMs / 1000));
+    };
+
+    const intervalId = setInterval(tick, 1000);
+    return () => {
+      clearInterval(intervalId);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, [refreshInterval]);
+
+  const displayedRemaining = remaining ?? refreshInterval;
   const size = 16;
   const strokeWidth = 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
-  useEffect(() => {
-    const calculateNextRefresh = () => {
-      const now = new Date();
-      const seconds = now.getSeconds();
-
-      // Time until next minute (in seconds)
-      const secondsToNextMinute = 60 - seconds;
-
-      // If less than 2 seconds to next minute, add 60 seconds (wait for the minute after)
-      if (secondsToNextMinute < 2) {
-        return secondsToNextMinute + 60;
-      }
-      return secondsToNextMinute;
-    };
-
-    const update = () => {
-      setRemaining(prev => {
-        const next = prev - 1;
-        if (next <= 0) {
-          setFlashing(true);
-          setTimeout(() => setFlashing(false), 500);
-          onRefresh?.();
-          // After auto-refresh, calculate time to next minute boundary
-          return calculateNextRefresh();
-        }
-        return next;
-      });
-    };
-
-    // Only set initial time on first mount, not on every data refresh
-    if (isInitialMount.current) {
-      const initialRefresh = calculateNextRefresh();
-      setRemaining(initialRefresh);
-      isInitialMount.current = false;
-    }
-
-    const intervalId = setInterval(update, 1000);
-    return () => clearInterval(intervalId);
-  }, [onRefresh]);
-
-  const progress = Math.max(0, Math.min(1, remaining / refreshInterval));
+  const progress = Math.max(0, Math.min(1, displayedRemaining / refreshInterval));
   const offset = circumference * (1 - progress);
-
-  const formatTime = (time: number) => {
-    if (time <= 0) return '...';
-    return `${Math.ceil(time)}s`;
-  };
 
   return (
     <div className={`refresh-timer-container${flashing ? ' refresh-flash' : ''}`}>
@@ -90,14 +112,28 @@ export const RefreshTimer: React.FC<RefreshTimerProps> = ({ lastUpdated, refresh
             style={{ transition: 'stroke-dashoffset 0.35s linear' }}
           />
         </svg>
-        <svg className="timer-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="timer-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
       </div>
       <span className="refresh-timer-text">
         <span className="refresh-timer-label">รีเฟรชใน</span>
-        <span className="refresh-timer-value">{formatTime(remaining)}</span>
+        <span className="refresh-timer-value">
+          {displayedRemaining <= 0 ? '...' : `${Math.ceil(displayedRemaining)}s`}
+        </span>
       </span>
     </div>
   );

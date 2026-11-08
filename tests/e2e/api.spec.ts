@@ -1,25 +1,24 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * API endpoint tests — these hit the real Next.js API routes served by the
- * dev server (no browser UI needed).
+ * API endpoint tests — these hit the real route handlers (no browser UI).
  *
- * ENVIRONMENT NOTE: These tests require the Cloudflare Pages runtime context
- * (getRequestContext / KV bindings). They pass in the Cloudflare Pages preview
- * environment but FAIL against the plain Next.js dev server because
- * setupDevPlatform is not configured. Quarantined with test.fixme so they are
- * recorded as known-expected failures rather than silently skipped.
+ * ENVIRONMENT NOTE: The routes read the STATUS_HISTORY KV namespace. The plain
+ * `next dev` server has an empty local KV, so /api/status correctly returns 503
+ * (missing config:services). Run these against a populated environment:
  *
- * To run these locally: use `npx @cloudflare/next-on-pages` + wrangler dev,
- * or run them in the CI Cloudflare Pages deploy pipeline.
+ *   # terminal 1
+ *   npm run preview            # serves http://localhost:8787
+ *   # terminal 2
+ *   CLOUDFLARE_ENV=1 PLAYWRIGHT_BASE_URL=http://localhost:8787 \
+ *     npx playwright test tests/e2e/api.spec.ts
+ *
+ * The suite is marked fixme unless CLOUDFLARE_ENV is set.
  */
-
-// Detect whether we are running against the plain Next.js dev server.
-// If the CLOUDFLARE_PAGES env var is not set we skip the real-API suite.
-const CLOUDFLARE_ENV = !!process.env.CLOUDFLARE_PAGES;
+const CLOUDFLARE_ENV = !!process.env.CLOUDFLARE_ENV;
 
 test.describe('GET /api/status', () => {
-  test.fixme(!CLOUDFLARE_ENV, 'Requires Cloudflare Pages runtime (KV bindings). Run with wrangler dev or in CF Pages CI.');
+  test.fixme(!CLOUDFLARE_ENV, 'Requires a populated STATUS_HISTORY KV. Run with CLOUDFLARE_ENV=1 against an OpenNext preview/deploy.');
   test('returns HTTP 200', async ({ request }) => {
     const res = await request.get('/api/status');
     expect(res.status()).toBe(200);
@@ -113,7 +112,7 @@ test.describe('GET /api/status', () => {
 });
 
 test.describe('GET /api/minutes/:serviceId/:date', () => {
-  test.fixme(!CLOUDFLARE_ENV, 'Requires Cloudflare Pages runtime (KV bindings). Run with wrangler dev or in CF Pages CI.');
+  test.fixme(!CLOUDFLARE_ENV, 'Requires a populated STATUS_HISTORY KV. Run with CLOUDFLARE_ENV=1 against an OpenNext preview/deploy.');
 
   const TODAY = new Date().toISOString().slice(0, 10);
   const SERVICE_IDS = ['cloudflare', 'website', 'r2-content', 'notion-sync', 'notion'];

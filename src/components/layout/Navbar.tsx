@@ -24,19 +24,22 @@ export default function Navbar({
   controls,
 }: NavbarProps) {
   const pathname = usePathname();
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownState, setDropdownState] = useState<{
+    label: string;
+    pathname: string;
+  } | null>(null);
   const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  useEffect(() => {
-    setOpenDropdown(null);
-  }, [pathname]);
+  // Navigating to another route closes any open dropdown without an effect.
+  const openDropdown =
+    dropdownState?.pathname === pathname ? dropdownState.label : null;
 
   useEffect(() => {
     if (!openDropdown) return;
     const handleClick = (e: MouseEvent) => {
       const ref = dropdownRefs.current[openDropdown];
       if (ref && !ref.contains(e.target as Node)) {
-        setOpenDropdown(null);
+        setDropdownState(null);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -54,7 +57,11 @@ export default function Navbar({
   };
 
   const toggleDropdown = (label: string) =>
-    setOpenDropdown((prev) => (prev === label ? null : label));
+    setDropdownState((previous) =>
+      previous?.label === label && previous.pathname === pathname
+        ? null
+        : { label, pathname },
+    );
 
   return (
     <nav

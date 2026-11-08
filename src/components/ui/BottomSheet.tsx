@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import "./BottomSheet.css";
+import React, { useEffect, useId } from 'react';
+import './BottomSheet.css';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -10,21 +10,47 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
+// Sheets can be stacked (consent banner + settings). Track them so body scroll
+// is restored only after the last closes, and Escape only closes the top one.
+const openSheets: string[] = [];
+
 const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
   children,
 }) => {
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+  const sheetId = useId();
+  const titleId = `${sheetId}-title`;
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
+  useEffect(() => {
+    if (!isOpen) return;
+
+    openSheets.push(sheetId);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      const index = openSheets.indexOf(sheetId);
+      if (index !== -1) openSheets.splice(index, 1);
+      if (openSheets.length === 0) document.body.style.overflow = '';
+    };
+  }, [isOpen, sheetId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (openSheets[openSheets.length - 1] !== sheetId) return;
+      onClose();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, sheetId]);
+
+  const handleOverlayClick = (event: React.MouseEvent) => {
+    if (event.target === event.currentTarget) onClose();
   };
 
   if (!isOpen) return null;
@@ -35,11 +61,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         className="bottom-sheet"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="bottom-sheet-title"
+        aria-labelledby={titleId}
       >
         <div className="bottom-sheet-drag-handle" />
         <div className="bottom-sheet-header">
-          <h2 id="bottom-sheet-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button
             className="bottom-sheet-close"
             onClick={onClose}

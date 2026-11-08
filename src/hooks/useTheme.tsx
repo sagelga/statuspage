@@ -38,10 +38,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   );
 
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) =>
       setSystemPreference(e.matches ? "dark" : "light");
@@ -52,7 +49,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const resolvedTheme = theme === "system" ? systemPreference : theme;
 
   useEffect(() => {
-    if (!mounted) return;
     const html = document.documentElement;
     if (resolvedTheme === "dark") {
       html.setAttribute("data-theme", "dark");
@@ -60,7 +56,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
       html.setAttribute("data-theme", "light");
     }
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme, resolvedTheme, mounted]);
+  }, [theme, resolvedTheme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);

@@ -45,3 +45,9 @@ next-env.d.ts
 # wrangler
 .wrangler/
 *.local
+
+# OpenNext Cloudflare build output
+/.open-next/
+
+# Generated Cloudflare runtime types (npm run cf-typegen)
+cloudflare-env.d.ts
