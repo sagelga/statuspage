@@ -62,7 +62,7 @@
 }
 
 .footer-tagline-by {
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.82em;
 }
 
@@ -122,7 +122,7 @@
   justify-content: space-between;
   padding: 1.25rem 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #9ca3af;
   gap: 1rem;
   flex-wrap: wrap;
 }
@@ -182,7 +182,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.775rem;
   cursor: pointer;
   transition: all 0.15s ease;

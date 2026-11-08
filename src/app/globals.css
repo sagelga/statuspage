@@ -11,6 +11,9 @@
   --max-w: 960px;
   --brand: #52006A;
   --brand-dark: #3d004f;
+  --brand-light: #7B1FA2;
+  --link: #52006A;
+  --link-hover: #3d004f;
   --font-th: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
@@ -22,7 +25,7 @@
 
   /* Light theme */
   --card-bg: #fdfcff;   --card-border: #e9e4f0;
-  --page-bg: #f5f3f8;   --text: #111827;          --text-muted: #6b7280;
+  --page-bg: #f5f3f8;   --text: #111827;          --text-muted: #5f5768;
 
   /* Easing */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -32,14 +35,16 @@
 :root.dark-theme {
   --card-bg: #130d1c; --card-border: #2a1f35;
   --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
-  --brand-light: var(--brand-light);
+  --brand-light: #C084FC;
+  --link: #C084FC; --link-hover: #D8B4FE;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light-theme) {
     --card-bg: #130d1c; --card-border: #2a1f35;
     --page-bg: #080510; --text: #f3eeff; --text-muted: #9ca3af;
-    --brand-light: var(--brand-light);
+    --brand-light: #C084FC;
+    --link: #C084FC; --link-hover: #D8B4FE;
   }
 }
 
@@ -53,8 +58,14 @@ body {
   line-height: 1.6;
 }
 
-a { color: var(--brand); text-decoration: none; }
-a:hover { color: var(--brand-dark); }
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); }
+
+/* Component link uses an !important brand color — lift it in dark mode */
+:root.dark-theme .info-tooltip-url { color: var(--brand-light) !important; }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme) .info-tooltip-url { color: var(--brand-light) !important; }
+}
 
 .page-wrap { max-width: var(--max-w); margin: 0 auto; padding: 2rem 2rem 4rem; transition: opacity 0.16s var(--ease-out-quart); }
 .page-wrap.brand-fade { opacity: 0; }
@@ -221,18 +232,20 @@ a:hover { color: var(--brand-dark); }
 
 /* Section */
 .section { margin-bottom: 2.5rem; animation: fade-up 0.45s var(--ease-out-quart) 0.15s both; }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+}
 .section-meta { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
 .section-title {
-  font-size: 1.25rem; font-weight: 700; color: var(--brand);
-  letter-spacing: -0.01em;
-  padding-top: 0.6rem;
-  border-top: 2px solid var(--brand);
-  display: inline-block;
-}
-:root.dark-theme .section-title { color: var(--brand-light); border-top-color: var(--brand-light); }
-@media (prefers-color-scheme: dark) {
-  :root:not(.light-theme) .section-title { color: var(--brand-light); border-top-color: var(--brand-light); }
+  font-size: 1.3rem; font-weight: 700; color: var(--text);
+  letter-spacing: 0;
+  padding-top: 0;
+  border-top: 0;
+  display: block;
+  line-height: 1.3;
 }
 
 /* Utilities */
@@ -283,8 +296,8 @@ a:hover { color: var(--brand-dark); }
 :root.sagelga-brand {
   --brand:        #3B4A8C;
   --brand-dark:   #2d3a6e;
-  --accent:       var(--accent);
-  --accent-dark:  var(--accent-dark);
+  --accent:       #C9943A;
+  --accent-dark:  #A87A28;
 }
 
 /* sagelga light palette */
@@ -293,7 +306,7 @@ a:hover { color: var(--brand-dark); }
   --card-bg:    #faf8f5;
   --card-border: #e0dbd3;
   --text:       #1c1a16;
-  --text-muted: #7a7166;
+  --text-muted: #6f6659;
   --gray-bg:    #eceae5;
 }
 
@@ -353,9 +366,6 @@ a:hover { color: var(--brand-dark); }
 /* Cards — use vars */
 :root.sagelga-brand .api-card,
 :root.sagelga-brand .incident-card           { background: var(--card-bg); border-color: var(--card-border); }
-
-/* Section title — accent becomes amber */
-:root.sagelga-brand .section-title           { color: var(--accent); border-top-color: var(--accent); }
 
 /* About blurb border */
 :root.sagelga-brand .about-blurb             { border-left-color: var(--accent); }
@@ -417,3 +427,7 @@ a:hover { color: var(--brand-dark); }
 :root.sagelga-brand.dark-theme .brand-toggle-btn.active,
 :root.sagelga-brand:not(.light-theme) .brand-toggle-btn.active { background: var(--brand); color: #fff; box-shadow: 0 1px 6px rgba(59, 74, 140, 0.4); }
 :root.sagelga-brand .brand-toggle-btn:hover:not(.active) { background: rgba(59,74,140,0.08); color: var(--text); }
+
+/* Small helper labels — keep above readable contrast in both themes */
+:root .uptime-hint { opacity: 0.9; }
+:root .mosaic-axis span { opacity: 0.9; }

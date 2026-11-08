@@ -120,6 +120,11 @@
   cursor: not-allowed;
 }
 
+/* Focus ring must stay visible on the colored navbar */
+:root .navbar :focus-visible {
+  outline-color: #ffffff;
+}
+
 /* ── Dropdown ── */
 .nav-dropdown-container {
   position: relative;

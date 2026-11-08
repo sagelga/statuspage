@@ -34,17 +34,25 @@
 :root.sagelga-brand .component-row:hover { background: rgba(201,148,58,0.06); }
 :root.sagelga-brand .component-row.loading:hover { background: transparent; }
 
-.component-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
+.component-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; min-width: 0; }
 .component-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted); transition: color 0.2s ease; }
 .component-icon svg { width: 16px; height: 16px; }
 .component-row.status-degraded .component-icon { color: var(--warn); }
 .component-row.status-down .component-icon { color: var(--err); }
-.component-name { flex: 1; min-width: 0; font-size: 1rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.component-name-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 0.1rem; }
+.component-name { min-width: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+.component-url { display: block; max-width: 100%; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.4; color: var(--text-muted); opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .component-meta { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 
 .uptime-row { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.25rem; }
+.uptime-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.1rem; }
 .uptime-footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
-.uptime-label { display: none; }
+.uptime-label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); }
+.uptime-pct { display: inline-flex; align-items: baseline; gap: 0.3rem; font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.uptime-pct b { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--ok-text); }
+.uptime-pct.is-warn b { color: var(--warn-text); }
+.uptime-pct.is-err b { color: var(--err-text); }
+.uptime-pct.is-none b { color: var(--text-muted); }
 .uptime-hint { font-size: 0.68rem; color: var(--text-muted); opacity: 0.8; font-weight: 400; letter-spacing: 0.01em; }
 
 .section-title-row { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
@@ -64,9 +72,50 @@
   background: var(--text-muted);
   animation: pulse 1.5s ease-in-out infinite;
 }
+.stale-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--warn-text);
+}
+.stale-hint .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
 .history-loaded-flash {
   animation: data-in 0.4s var(--ease-out-quart) both;
 }
+
+/* Full-width fetch error state (no cached services) */
+.load-error-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 2.75rem 1.5rem;
+  text-align: center;
+}
+.load-error-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+.load-error-desc { font-size: 0.875rem; color: var(--text-muted); }
+.load-error-retry {
+  margin-top: 0.55rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.load-error-retry:hover { opacity: 0.9; }
+.load-error-retry:active { transform: scale(0.97); }
 .sr-only {
   position: absolute;
   width: 1px;
@@ -155,6 +204,28 @@
 }
 .uptime-bar { cursor: pointer; }
 .uptime-bar:active { transform: scaleY(0.9) !important; transition-duration: 0.05s !important; }
+
+/* Bars are real buttons: reset UA chrome and give them a comfortable hit area. */
+.component-row .uptime-bars { height: 30px; gap: 2.5px; }
+.component-row .uptime-bar {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 6px;
+  border-radius: 5px;
+  line-height: 0;
+}
+.component-row .uptime-bar:focus-visible,
+.uptime-bars.has-selection .uptime-bar:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  opacity: 1;
+  transform: scaleY(1.1);
+  z-index: 3;
+}
+.uptime-bar.loading:disabled { cursor: default; }
 
 /* Uptime legend */
 .uptime-legend {
@@ -315,11 +386,35 @@
 @media (max-width: 640px) {
   .section-header { flex-direction: row; align-items: baseline; }
   .component-row { padding: 1.25rem 1rem; }
-  .component-top { align-items: flex-start; gap: 0.75rem; }
-  .component-icon { margin-top: 0.1rem; }
-  .component-name { font-size: 0.9rem; }
-  .component-meta { margin-top: 0.25rem; display: flex; flex-direction: row; gap: 0.6rem; justify-content: flex-start; width: auto; border: none; padding: 0; }
-  .response-time { font-size: 0.75rem; padding: 0.1rem 0.35rem; }
+  .component-top { align-items: flex-start; flex-wrap: wrap; gap: 0.55rem 0.65rem; }
+  .component-icon { margin-top: 0.15rem; }
+  .component-name-wrap { flex: 1 1 0; min-width: 0; }
+  .component-name { font-size: 0.95rem; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+  .component-url { font-size: 0.8rem; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+  .component-meta {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    margin-top: 0.1rem;
+    padding-left: calc(20px + 0.65rem);
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .component-meta .badge { font-size: 0.875rem; padding: 0.24rem 0.58rem; }
+  .response-time { font-size: 0.8rem; padding: 0.12rem 0.4rem; }
+  .uptime-head { margin-top: 0.1rem; }
+  .uptime-label { font-size: 0.875rem; }
+  .uptime-pct { font-size: 0.8rem; }
+  .uptime-pct b { font-size: 0.9rem; }
+  .uptime-footer { font-size: 0.875rem; }
+  .uptime-hint { font-size: 0.875rem; }
+  .stale-hint, .history-loading-hint { font-size: 0.875rem; }
+  .uptime-legend { font-size: 0.875rem; }
+  .mosaic-inline-date, .mosaic-inline-pct { font-size: 0.875rem; }
+  .component-row .uptime-bars { height: 32px; gap: 2.5px; }
+  .component-row .uptime-bar { min-width: 8px; border-radius: 6px; }
+  .load-error-panel { padding: 2.25rem 1.25rem; }
   /* Slightly taller cells on small screens for easier reading */
   .mosaic-half-grid { grid-auto-rows: 4px; gap: 1px; }
 }

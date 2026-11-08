@@ -16,6 +16,7 @@ export class StatusPagePOM {
   readonly heroBanner: Locator;
   readonly heroTitle: Locator;
   readonly heroSub: Locator;
+  readonly heroRefresh: Locator;
   readonly aboutBlurb: Locator;
 
   readonly servicesSection: Locator;
@@ -24,7 +25,11 @@ export class StatusPagePOM {
   readonly serviceRows: Locator;
   readonly skeletonRows: Locator;
   readonly uptimeBars: Locator;
+  readonly uptimePct: Locator;
+  readonly componentUrl: Locator;
   readonly uptimeLegend: Locator;
+  readonly loadErrorPanel: Locator;
+  readonly loadErrorRetry: Locator;
   readonly refreshTimer: Locator;
   readonly minutePopup: Locator;
 
@@ -54,6 +59,7 @@ export class StatusPagePOM {
     this.heroBanner = page.locator('.hero-banner');
     this.heroTitle  = page.locator('.hero-title');
     this.heroSub    = page.locator('.hero-sub');
+    this.heroRefresh = page.locator('.hero-refresh');
     this.aboutBlurb = page.locator('.about-blurb');
 
     this.servicesSection      = page.locator('.section').filter({ has: page.locator('h2:has-text("บริการ")') });
@@ -62,7 +68,11 @@ export class StatusPagePOM {
     this.serviceRows          = page.locator('.component-row');
     this.skeletonRows         = page.locator('.skeleton-row');
     this.uptimeBars           = page.locator('.uptime-bars');
+    this.uptimePct            = page.locator('.uptime-pct');
+    this.componentUrl         = page.locator('.component-url');
     this.uptimeLegend         = page.locator('.uptime-legend');
+    this.loadErrorPanel       = page.locator('.load-error-panel');
+    this.loadErrorRetry       = page.locator('.load-error-retry');
     this.refreshTimer         = page.locator('.refresh-timer-container');
     this.minutePopup          = page.locator('#minute-popup');
 
@@ -100,12 +110,16 @@ export class StatusPagePOM {
   }
 
   async waitForStatusLoaded() {
-    const heroCount = await this.heroBanner.count();
-    if (heroCount > 0) {
-      await expect(this.heroBanner).not.toHaveClass(/loading/, { timeout: 15000 });
-    } else {
-      await expect(this.serviceRows.first().locator('.badge')).not.toHaveClass(/loading/, { timeout: 15000 });
-    }
+    // The hero is always rendered now, so waiting for it to leave the loading
+    // state is enough to know the current-status phase has resolved.
+    await expect(this.heroBanner).toBeVisible({ timeout: 15000 });
+    await expect(this.heroBanner).not.toHaveClass(/loading/, { timeout: 15000 });
+    await expect(this.heroBanner).not.toHaveClass(/error/, { timeout: 15000 });
+  }
+
+  async waitForUptimeLoaded() {
+    // dailyUptime arrives with the brand-full payload, after currentOnly badges.
+    await expect(this.serviceRows.first().locator('.uptime-pct b')).not.toHaveText('—', { timeout: 15000 });
   }
 
   async openThemeSettings() {

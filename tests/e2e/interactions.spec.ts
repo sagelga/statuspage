@@ -203,25 +203,35 @@ test.describe('Theme toggle — visual state', () => {
     await expect(pom.page.locator('.theme-option', { hasText: 'Dark' })).toBeVisible();
   });
 
-  test('selecting Dark theme sets data-theme=dark', async ({ page }) => {
+  test('selecting Dark theme sets data-theme=dark and the dark-theme class', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.selectTheme('Dark');
-    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const html = pom.page.locator('html');
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+    await expect(html).toHaveClass(/dark-theme/);
+    await expect(html).not.toHaveClass(/light-theme/);
   });
 
-  test('selecting Light theme sets data-theme=light', async ({ page }) => {
+  test('selecting Light theme sets data-theme=light and the light-theme class', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.selectTheme('Dark');
     await pom.selectTheme('Light');
-    await expect(pom.page.locator('html')).toHaveAttribute('data-theme', 'light');
+    const html = pom.page.locator('html');
+    await expect(html).toHaveAttribute('data-theme', 'light');
+    await expect(html).toHaveClass(/light-theme/);
+    await expect(html).not.toHaveClass(/dark-theme/);
   });
 
-  test('data-theme changes when switching between Light and Dark', async ({ page }) => {
+  test('data-theme and theme classes change when switching between Light and Dark', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.selectTheme('Light');
     const theme1 = await pom.getDataTheme();
+    const html = pom.page.locator('html');
+    await expect(html).toHaveClass(/light-theme/);
+
     await pom.selectTheme('Dark');
     const theme2 = await pom.getDataTheme();
+    await expect(html).toHaveClass(/dark-theme/);
     expect(theme2).not.toBe(theme1);
   });
 });
@@ -297,6 +307,20 @@ test.describe('Keyboard accessibility — tab focus reaches key elements', () =>
     await pom.themeSettingsBtn.focus();
     await page.keyboard.press('Enter');
     await expect(pom.page.locator('.theme-settings-list')).toBeVisible();
+  });
+
+  test('uptime bar is focusable and opens the mosaic panel on Enter', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
+
+    await lastBar.scrollIntoViewIfNeeded();
+    await lastBar.focus();
+    await expect(lastBar).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
+    await expect(lastBar).toHaveClass(/selected/);
+    await expect(lastBar).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('API link is focusable and has correct href', async ({ page }) => {

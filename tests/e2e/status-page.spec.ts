@@ -139,18 +139,25 @@ test.describe('Status Page — hero banner', () => {
     await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
   });
 
-  test('hides hero banner when all services are operational', async ({ page }) => {
+  test('always shows the all-clear banner when all services are operational', async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
     await pom.goto();
     await pom.waitForStatusLoaded();
 
-    await expect(pom.heroBanner).toHaveCount(0);
+    await expect(pom.heroBanner).toHaveClass(/operational/);
+    await expect(pom.heroTitle).toHaveText('ทุกระบบทำงานปกติ');
+    await expect(pom.heroSub).toContainText('ตรวจสอบล่าสุด');
+    await expect(pom.heroSub).toContainText('5 บริการ');
+    await expect(pom.heroBanner.locator('.hero-uptime b')).toHaveText('100.00%');
+    await expect(pom.heroRefresh).toBeVisible();
+    await expect(pom.heroRefresh).toHaveText('รีเฟรช');
+
     const badges = pom.serviceRows.locator('.badge.operational');
     await expect(badges).toHaveCount(5);
   });
 
-  test('shows degraded banner when a service is slow', async ({ page }) => {
+  test('shows degraded banner when a service is slow, naming the service', async ({ page }) => {
     const degraded = {
       ...MOCK_STATUS,
       status: 'degraded' as const,
@@ -164,9 +171,13 @@ test.describe('Status Page — hero banner', () => {
     await pom.waitForStatusLoaded();
 
     await expect(pom.heroBanner).toHaveClass(/degraded/);
+    await expect(pom.heroTitle).toHaveText('บางบริการทำงานช้าลง');
+    await expect(pom.heroSub).toContainText(degraded.services[0].name);
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('1');
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการต้องดู');
   });
 
-  test('shows down banner when a service is down', async ({ page }) => {
+  test('shows down banner when a service is down, naming the service', async ({ page }) => {
     const down = {
       ...MOCK_STATUS,
       status: 'down' as const,
@@ -180,9 +191,12 @@ test.describe('Status Page — hero banner', () => {
     await pom.waitForStatusLoaded();
 
     await expect(pom.heroBanner).toHaveClass(/down/);
+    await expect(pom.heroTitle).toHaveText('มีบริการที่ใช้งานไม่ได้');
+    await expect(pom.heroSub).toContainText(down.services[0].name);
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการล่ม');
   });
 
-  test('shows error banner when API call fails', async ({ page }) => {
+  test('shows error banner when API call fails — and never the down banner', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     await page.route('**/api/status**', (route) => route.abort('failed'));
@@ -190,7 +204,11 @@ test.describe('Status Page — hero banner', () => {
     const pom = new StatusPagePOM(page);
     await pom.goto();
     // Wait for fetch to fail and component to re-render
-    await expect(pom.heroTitle).toHaveText('ไม่สามารถโหลดสถานะได้', { timeout: 10000 });
+    await expect(pom.heroTitle).toHaveText('ตรวจสอบสถานะไม่ได้', { timeout: 10000 });
+    await expect(pom.heroBanner).toHaveClass(/error/);
+    await expect(pom.heroBanner).not.toHaveClass(/down/);
+    await expect(pom.loadErrorPanel).toBeVisible();
+    await expect(pom.loadErrorRetry).toBeVisible();
   });
 });
 
@@ -199,6 +217,13 @@ test.describe('Status Page — service list', () => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     const requestOrder: string[] = [];
+
+    // This describe's beforeEach already loaded "/", and its deferred all-brand
+    // fetch can land after this test registers its route. Reset the document so
+    // only requests from the navigation below are recorded (StrictMode still
+    // double-invokes effects in dev, so later assertions use first occurrences).
+    await page.goto('about:blank');
+    requestOrder.length = 0;
 
     await page.route('**/api/status**', async (route) => {
       const url = route.request().url();
@@ -225,18 +250,20 @@ test.describe('Status Page — service list', () => {
     await pom.goto('/?brand=sagelga');
     await pom.waitForServicesLoaded();
 
-    const currentIdx = requestOrder.findIndex((u) => {
-      const p = new URL(u).searchParams;
-      return p.get('brand') === 'sagelga' && p.get('currentOnly') === 'true';
-    });
-    const brandFullIdx = requestOrder.findIndex((u) => {
-      const p = new URL(u).searchParams;
-      return p.get('brand') === 'sagelga' && !p.has('currentOnly');
-    });
-    const allFullIdx = requestOrder.findIndex((u) => {
-      const p = new URL(u).searchParams;
-      return !p.has('brand') && !p.has('currentOnly');
-    });
+    const findBy = (predicate: (params: URLSearchParams) => boolean) =>
+      requestOrder.findIndex((u) => predicate(new URL(u).searchParams));
+
+    // The all-brand phase is deferred via requestIdleCallback (5s max), so wait
+    // for it instead of assuming it has fired by the time badges appear.
+    await expect.poll(
+      () => findBy((p) => !p.has('brand') && !p.has('currentOnly')),
+      { timeout: 10_000 },
+    ).toBeGreaterThanOrEqual(0);
+
+    const currentIdx = findBy((p) => p.get('brand') === 'sagelga' && p.get('currentOnly') === 'true');
+    const brandFullIdx = findBy((p) => p.get('brand') === 'sagelga' && !p.has('currentOnly'));
+    const allFullIdx = findBy((p) => !p.has('brand') && !p.has('currentOnly'));
+
     expect(currentIdx).toBeGreaterThanOrEqual(0);
     expect(brandFullIdx).toBeGreaterThan(currentIdx);
     expect(allFullIdx).toBeGreaterThan(brandFullIdx);
@@ -411,6 +438,19 @@ test.describe('Status Page — service list', () => {
     await expect(bars).toHaveCount(30);
   });
 
+  test('every service row shows a 30-day uptime percentage', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    const rows = pom.serviceRows;
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const pct = rows.nth(i).locator('.uptime-pct b');
+      await expect(pct).toBeVisible();
+      await expect(pct).toHaveText(/^\d+\.\d{2}%$/);
+    }
+  });
+
   test('uptime legend is visible with all four states', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.uptimeLegend).toBeVisible();
@@ -452,6 +492,10 @@ test.describe('Status Page — service list', () => {
 
     const degradedBadge = pom.serviceRows.nth(1).locator('.badge.degraded');
     await expect(degradedBadge).toHaveText('มีปัญหา');
+
+    // Today's bar must agree with the live badge, even though the mock says 100%.
+    const todayBar = pom.serviceRows.nth(1).locator('.uptime-bar').last();
+    await expect(todayBar).toHaveClass(/degraded/);
   });
 });
 

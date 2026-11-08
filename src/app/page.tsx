@@ -217,6 +217,20 @@ export default function Home() {
     : brandServices.some(s => s.status === 'down') ? 'down'
     : brandServices.some(s => s.status === 'degraded') ? 'degraded'
     : 'operational';
+  const affectedService = brandServices?.find(s => s.status === 'down')
+    ?? brandServices?.find(s => s.status === 'degraded')
+    ?? null;
+
+  const uptime30d = (() => {
+    if (!data?.dailyUptime) return null;
+    const values = visibleServices.flatMap(svc =>
+      (data.dailyUptime?.[svc.id] ?? []).filter((v): v is number => typeof v === 'number' && Number.isFinite(v)),
+    );
+    if (values.length === 0) return null;
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    return Math.round(average * 100) / 100;
+  })();
+
   const activeBrandMeta = BRANDS.find(b => b.id === activeBrand)!;
   const historyLoading = data !== null && !brandHasHistory(data, activeBrand);
 
@@ -229,9 +243,17 @@ export default function Home() {
       <StatusNavbar activeBrand={activeBrand} onBrandChange={handleBrandChange} />
       <div className={`page-wrap${brandFading ? ' brand-fade' : ''}`}>
         <Hero
-          status={error ? ('down' as ServiceStatus) : brandStatus}
+          status={brandStatus}
           checkedAt={data?.checkedAt}
           error={error}
+          serviceCount={expectedCount}
+          affectedService={affectedService ? {
+            name: affectedService.name,
+            responseTime: affectedService.responseTime,
+            status: affectedService.status,
+          } : null}
+          uptime30d={uptime30d}
+          onRefresh={loadFullStatus}
         />
 
         <div className="about-blurb">
@@ -246,6 +268,7 @@ export default function Home() {
           dailyUptime={data?.dailyUptime}
           dailyFuncUptime={data?.dailyFuncUptime}
           historyLoading={historyLoading}
+          loadError={error}
           onRefresh={loadFullStatus}
         />
 

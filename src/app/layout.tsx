@@ -70,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
+    <html lang="th" suppressHydrationWarning className={`${ibmPlexSansThai.variable} ${jetBrainsMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -81,11 +81,9 @@ export default function RootLayout({
                 const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const isDark = theme === 'system' ? systemDark : theme === 'dark';
                 const html = document.documentElement;
-                if (isDark) {
-                  html.setAttribute('data-theme', 'dark');
-                } else {
-                  html.setAttribute('data-theme', 'light');
-                }
+                html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                html.classList.toggle('dark-theme', isDark);
+                html.classList.toggle('light-theme', !isDark);
               })();
             `,
           }}
