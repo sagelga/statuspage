@@ -2,19 +2,14 @@
  * Client-side helpers for detecting when a brand's status data is fully loaded.
  */
 import { SERVICES_BY_BRAND, type BrandId } from '@/config';
-import type { ServiceStatus, StatusResponse } from '@/types';
+import type {
+  CurrentStatusResponse,
+  ServiceStatus,
+  StatusResponse,
+} from '@/types';
 
-/**
- * Count how many services for a brand are present in the merged client state.
- * @param data - Current StatusResponse or null before first fetch
- * @param brand - Brand to count
- * @returns Number of matching service results (0 when data is null)
- */
-export function countLoadedForBrand(data: StatusResponse | null, brand: BrandId): number {
-  if (!data?.services) return 0;
-  const brandIds = new Set(SERVICES_BY_BRAND[brand].map((s) => s.id));
-  return data.services.filter((s) => brandIds.has(s.id)).length;
-}
+/** Minimal shape shared by full and current-only API payloads. */
+type StatusData = StatusResponse | CurrentStatusResponse;
 
 /**
  * Check whether a single service has a complete 30-day history array.
@@ -36,7 +31,7 @@ export function serviceHasHistory(
  * @param brand - Active brand
  * @returns True when all SERVICES_BY_BRAND[brand] ids have 30-day history arrays
  */
-export function brandHasHistory(data: StatusResponse | null, brand: BrandId): boolean {
+export function brandHasHistory(data: StatusData | null, brand: BrandId): boolean {
   if (!data?.history) return false;
   return SERVICES_BY_BRAND[brand].every((s) => serviceHasHistory(data.history, s.id));
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import BottomSheet from "@/components/ui/BottomSheet";
 import { getCookiePreferences, setCookiePreferences } from "@/utils/cookies";
 import "./CookieSettingsModal.css";
@@ -16,20 +16,13 @@ const CookieSettingsModal: React.FC<CookieSettingsModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [preferences, setPreferences] = useState({
-    functional: true,
-    analytics: false,
-  });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
+  const [preferences, setPreferences] = useState(() => {
     const current = getCookiePreferences();
-    setPreferences({
+    return {
       functional: current.functional,
       analytics: current.analytics,
-    });
-  }, []);
+    };
+  });
 
   const handleToggle = (key: "analytics") => {
     setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -44,8 +37,6 @@ const CookieSettingsModal: React.FC<CookieSettingsModalProps> = ({
     onSave();
     onClose();
   };
-
-  if (!mounted) return null;
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Cookie Settings">

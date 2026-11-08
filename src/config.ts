@@ -9,8 +9,7 @@ export const TIMEOUT_MS = 5000;
 export const DEGRADED_THRESHOLD_MS = 1500;
 
 export const SITE_CONFIG = {
-  name:         'ByteSide.one',
-  url:          'https://status.sagelga.com',
+  name: 'ByteSide.one',
 };
 
 export type BrandId = 'byteside' | 'sagelga';
@@ -59,9 +58,3 @@ export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = {
     { id: 'sagelga-learn',      name: 'Learn',                icon: 'book-open',  url: 'https://learn.sagelga.com' },
   ],
 };
-
-// Flat list used by the API to read/write all service statuses
-export const SERVICES: ServiceDefinition[] = [
-  ...SERVICES_BY_BRAND.byteside,
-  ...SERVICES_BY_BRAND.sagelga,
-];

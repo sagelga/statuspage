@@ -35,7 +35,8 @@ function resolveBody(phase: Phase) {
 }
 
 const PHASE_DELAY: Record<Phase, number> = {
-  'byteside-current': 200,
+  // Long enough that the loading skeleton is observable after page load.
+  'byteside-current': 1500,
   'sagelga-current': 200,
   'byteside-full': 1200,
   'sagelga-full': 1200,
@@ -74,12 +75,12 @@ test('initial load: badges from currentOnly before brand-full request', async ({
   await pom.goto('/');
 
   await expect(pom.serviceRows.first().locator('.badge.loading')).toBeVisible();
-  await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible({ timeout: 2000 });
+  await expect(pom.serviceRows.first().locator('.badge.operational')).toBeVisible({ timeout: 4000 });
 
   const currentReq = requested.find((r) => r.phase === 'byteside-current');
   expect(currentReq).toBeDefined();
 
-  await expect.poll(() => requested.filter((r) => r.phase === 'byteside-full').length).toBeGreaterThan(0, { timeout: 3000 });
+  await expect.poll(() => requested.filter((r) => r.phase === 'byteside-full').length, { timeout: 3000 }).toBeGreaterThan(0);
   const brandFullReq = requested.find((r) => r.phase === 'byteside-full');
   expect(brandFullReq).toBeDefined();
   expect(currentReq!.at).toBeLessThan(brandFullReq!.at);
@@ -106,7 +107,7 @@ test('brand switch via tab: sagelga currentOnly badges before brand-full request
   const sagelgaCurrent = switchRequests.find((r) => r.phase === 'sagelga-current');
   expect(sagelgaCurrent).toBeDefined();
 
-  await expect.poll(() => switchRequests.filter((r) => r.phase === 'sagelga-full').length).toBeGreaterThan(0, { timeout: 3000 });
+  await expect.poll(() => switchRequests.filter((r) => r.phase === 'sagelga-full').length, { timeout: 3000 }).toBeGreaterThan(0);
   const sagelgaFull = switchRequests.find((r) => r.phase === 'sagelga-full');
   expect(sagelgaFull).toBeDefined();
   expect(sagelgaCurrent!.at).toBeLessThan(sagelgaFull!.at);

@@ -3,6 +3,8 @@ import { Icons } from '../Icons';
 import './IncidentHistory.style.css';
 
 export const IncidentHistory: React.FC = () => {
+  const CheckIcon = Icons.check;
+
   return (
     <div className="section">
       <div className="section-header">
@@ -17,7 +19,9 @@ export const IncidentHistory: React.FC = () => {
             ))}
           </div>
           <div className="no-incidents-body">
-            <span className="no-incidents-icon" dangerouslySetInnerHTML={{ __html: Icons.check }}></span>
+            <span className="no-incidents-icon">
+              {CheckIcon ? <CheckIcon strokeWidth={2.5} /> : null}
+            </span>
             <div>
               <p className="no-incidents-title">ทุกอย่างเรียบร้อยดีตลอด 14 วัน</p>
               <p className="no-incidents-sub">ไม่มีเหตุการณ์ที่ส่งผลต่อบริการในช่วงนี้ — ประวัติเหตุการณ์จะแสดงที่นี่เมื่อมีการบันทึก</p>
