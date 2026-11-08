@@ -22,13 +22,10 @@ describe('filterServicesByBrand (shipped)', () => {
     assert.ok(result.every((s) => SERVICES_BY_BRAND.sagelga.some((b) => b.id === s.id)));
   });
 
-  it('returns 2 thaipatmetal services when brand=thaipatmetal', () => {
+  it('returns 1 thaipatmetal service when brand=thaipatmetal', () => {
     const result = filterServicesByBrand(ALL_SERVICES, 'thaipatmetal');
-    assert.equal(result.length, 2);
-    assert.deepEqual(
-      result.map((s) => s.id),
-      ['thaipatmetal-frontend', 'thaipatmetal-backend'],
-    );
+    assert.equal(result.length, 1);
+    assert.deepEqual(result.map((s) => s.id), ['thaipatmetal-frontend']);
   });
 
   it('isValidBrandParam accepts only known brands', () => {

@@ -24,7 +24,7 @@ describe('brand-status helpers (shipped)', () => {
     assert.equal(countLoadedForBrand(current, 'thaipatmetal'), 0);
   });
 
-  it('countLoadedForBrand counts the two thaipatmetal services', () => {
+  it('countLoadedForBrand counts the thaipatmetal frontend service', () => {
     const current: CurrentStatusResponse = {
       status: 'operational',
       checkedAt: '2026-01-01T00:00:00.000Z',
@@ -38,7 +38,7 @@ describe('brand-status helpers (shipped)', () => {
       })),
       history: {},
     };
-    assert.equal(countLoadedForBrand(current, 'thaipatmetal'), 2);
+    assert.equal(countLoadedForBrand(current, 'thaipatmetal'), 1);
   });
 
   it('serviceHasHistory checks per-service 30-day arrays', () => {

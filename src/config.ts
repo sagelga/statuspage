@@ -35,7 +35,7 @@ export const BRANDS: BrandMeta[] = [
   {
     id: 'thaipatmetal',
     label: 'ไทยพัฒน์เมทัล',
-    description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์และระบบจัดการหลังบ้านของไทยพัฒน์เมทัล',
+    description: 'ตรวจสอบสถานะการทำงานของเว็บไซต์ไทยพัฒน์เมทัล',
   },
 ];
 
@@ -66,8 +66,7 @@ export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = {
   thaipatmetal: [
     // Services loaded from KV config:services (pulse worker)
     // These entries match the pulse config for display purposes only
-    { id: 'thaipatmetal-frontend', name: 'เว็บไซต์หลัก',          icon: 'globe',  url: 'https://thaipatmetal.com' },
-    { id: 'thaipatmetal-backend',  name: 'ระบบหลังบ้าน',         icon: 'server', url: 'https://admin.thaipatmetal.com/api/health' },
+    { id: 'thaipatmetal-frontend', name: 'เว็บไซต์หลัก', icon: 'globe', url: 'https://thaipatmetal.com' },
   ],
 };
 

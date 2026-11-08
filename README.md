@@ -11,7 +11,7 @@ Real-time status monitoring page for ByteSide.one, sagelga.com, and Thai Pat Met
 ## Features
 
 - **Real-time monitoring** — Service health badges with response times from Cloudflare KV
-- **Multi-brand support** — ByteSide.one (5 services), sagelga.com (7 services), and Thai Pat Metal (2 services) via brand toggle
+- **Multi-brand support** — ByteSide.one (5 services), sagelga.com (7 services), and Thai Pat Metal (1 service) via brand toggle
 - **30-day history** — Daily uptime bars and per-minute mosaic drill-down
 - **Fast initial load** — Three-phase fetch: current badges → brand history → cross-brand cache
 - **Theme toggle** — Light/dark mode with system preference detection
@@ -26,10 +26,7 @@ Services are defined in the **statuspage-pulse** worker and stored in KV (`confi
 |-------|----------|
 | ByteSide.one | Cloudflare, Website, R2 Content, Notion Sync, Notion DB |
 | sagelga.com | sagelga.com, Mahjong Hands, Telegram Thai, Docs, Redirect, Static, Learn |
-| ไทยพัฒน์เมทัล | เว็บไซต์หลัก (thaipatmetal.com), ระบบหลังบ้าน (admin.thaipatmetal.com) |
-
-> The Thai Pat Metal backend is behind Cloudflare Access. `statuspage-pulse`
-> probes it with an Access service token; see that repo's README for setup.
+| ไทยพัฒน์เมทัล | เว็บไซต์หลัก (thaipatmetal.com) |
 
 ## Getting Started
 

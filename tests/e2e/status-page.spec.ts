@@ -298,17 +298,14 @@ test.describe('Status Page — service list', () => {
     await expect(sagelgaRow.locator('.badge')).not.toHaveClass(/loading/);
   });
 
-  test('brand toggle switches to thaipatmetal frontend and backend services', async ({ page }) => {
+  test('brand toggle switches to the thaipatmetal frontend service', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await page.getByRole('tab', { name: 'ไทยพัฒน์เมทัล' }).click();
 
-    await expect(pom.serviceRows).toHaveCount(2);
-    await expect(pom.serviceRows.locator('.component-name')).toHaveText([
-      'เว็บไซต์หลัก',
-      'ระบบหลังบ้าน',
-    ]);
+    await expect(pom.serviceRows).toHaveCount(1);
+    await expect(pom.serviceRows.locator('.component-name')).toHaveText(['เว็บไซต์หลัก']);
 
-    await expect(pom.serviceRows.locator('.badge.operational')).toHaveCount(2, { timeout: 5000 });
+    await expect(pom.serviceRows.locator('.badge.operational')).toHaveCount(1, { timeout: 5000 });
     await expect(pom.serviceRows.first().locator('.uptime-bar.operational').first()).toBeVisible();
   });
 
