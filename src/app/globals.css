@@ -417,3 +417,70 @@ a:hover { color: var(--brand-dark); }
 :root.sagelga-brand.dark-theme .brand-toggle-btn.active,
 :root.sagelga-brand:not(.light-theme) .brand-toggle-btn.active { background: var(--brand); color: #fff; box-shadow: 0 1px 6px rgba(59, 74, 140, 0.4); }
 :root.sagelga-brand .brand-toggle-btn:hover:not(.active) { background: rgba(59,74,140,0.08); color: var(--text); }
+
+/* ─── thaipatmetal brand theme ────────────────────────────────────
+   Industrial charcoal plates (#050505 / #1a1a1a) with warm paper
+   surfaces, mirroring thaipatmetal.com.
+   ────────────────────────────────────────────────────────────────── */
+
+:root.thaipatmetal-brand {
+  --brand:      #1a1a1a;
+  --brand-dark: #050505;
+}
+
+/* thaipatmetal light palette */
+:root.thaipatmetal-brand.light-theme {
+  --page-bg:     #f4f2ee;
+  --card-bg:     #fbfaf7;
+  --card-border: #e2ded6;
+  --text:        #1a1815;
+  --text-muted:  #6f6a61;
+  --gray-bg:     #eae7e0;
+}
+
+/* thaipatmetal dark palette — explicit toggle */
+:root.thaipatmetal-brand.dark-theme {
+  --page-bg:     #0f0f0f;
+  --card-bg:     #1a1a1a;
+  --card-border: rgba(242, 240, 236, 0.1);
+  --text:        #f2f0ec;
+  --text-muted:  #a8a59f;
+  --gray-bg:     rgba(242, 240, 236, 0.07);
+}
+
+/* thaipatmetal dark — OS preference */
+@media (prefers-color-scheme: dark) {
+  :root.thaipatmetal-brand:not(.light-theme) {
+    --page-bg:     #0f0f0f;
+    --card-bg:     #1a1a1a;
+    --card-border: rgba(242, 240, 236, 0.1);
+    --text:        #f2f0ec;
+    --text-muted:  #a8a59f;
+    --gray-bg:     rgba(242, 240, 236, 0.07);
+  }
+}
+
+/* Navbar — near-black plate in both themes */
+:root.thaipatmetal-brand .navbar { background: #050505; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+
+/* Links */
+:root.thaipatmetal-brand a            { color: var(--brand); }
+:root.thaipatmetal-brand a:hover      { color: var(--brand-dark); }
+:root.thaipatmetal-brand.dark-theme a       { color: #f2f0ec; }
+:root.thaipatmetal-brand.dark-theme a:hover { color: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root.thaipatmetal-brand:not(.light-theme) a       { color: #f2f0ec; }
+  :root.thaipatmetal-brand:not(.light-theme) a:hover { color: #ffffff; }
+}
+
+/* Focus ring */
+:root.thaipatmetal-brand :focus-visible { outline-color: var(--brand); }
+:root.thaipatmetal-brand.dark-theme :focus-visible { outline-color: #f2f0ec; }
+@media (prefers-color-scheme: dark) {
+  :root.thaipatmetal-brand:not(.light-theme) :focus-visible { outline-color: #f2f0ec; }
+}
+
+/* Brand toggle — keep the charcoal plate in dark mode too */
+:root.thaipatmetal-brand .brand-toggle-btn.active,
+:root.thaipatmetal-brand.dark-theme .brand-toggle-btn.active,
+:root.thaipatmetal-brand:not(.light-theme) .brand-toggle-btn.active { background: var(--brand); color: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.35); }

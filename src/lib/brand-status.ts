@@ -10,7 +10,10 @@ import type { ServiceStatus, StatusResponse } from '@/types';
  * @param brand - Brand to count
  * @returns Number of matching service results (0 when data is null)
  */
-export function countLoadedForBrand(data: StatusResponse | null, brand: BrandId): number {
+export function countLoadedForBrand(
+  data: { services?: StatusResponse['services'] } | null,
+  brand: BrandId,
+): number {
   if (!data?.services) return 0;
   const brandIds = new Set(SERVICES_BY_BRAND[brand].map((s) => s.id));
   return data.services.filter((s) => brandIds.has(s.id)).length;
@@ -36,7 +39,10 @@ export function serviceHasHistory(
  * @param brand - Active brand
  * @returns True when all SERVICES_BY_BRAND[brand] ids have 30-day history arrays
  */
-export function brandHasHistory(data: StatusResponse | null, brand: BrandId): boolean {
+export function brandHasHistory(
+  data: { history?: StatusResponse['history'] } | null,
+  brand: BrandId,
+): boolean {
   if (!data?.history) return false;
   return SERVICES_BY_BRAND[brand].every((s) => serviceHasHistory(data.history, s.id));
 }

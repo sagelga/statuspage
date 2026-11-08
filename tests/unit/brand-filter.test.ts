@@ -6,6 +6,7 @@ import { filterServicesByBrand, isValidBrandParam } from '../../src/lib/brand-fi
 const ALL_SERVICES = [
   ...SERVICES_BY_BRAND.byteside,
   ...SERVICES_BY_BRAND.sagelga,
+  ...SERVICES_BY_BRAND.thaipatmetal,
 ];
 
 describe('filterServicesByBrand (shipped)', () => {
@@ -21,9 +22,19 @@ describe('filterServicesByBrand (shipped)', () => {
     assert.ok(result.every((s) => SERVICES_BY_BRAND.sagelga.some((b) => b.id === s.id)));
   });
 
+  it('returns 2 thaipatmetal services when brand=thaipatmetal', () => {
+    const result = filterServicesByBrand(ALL_SERVICES, 'thaipatmetal');
+    assert.equal(result.length, 2);
+    assert.deepEqual(
+      result.map((s) => s.id),
+      ['thaipatmetal-frontend', 'thaipatmetal-backend'],
+    );
+  });
+
   it('isValidBrandParam accepts only known brands', () => {
     assert.equal(isValidBrandParam('byteside'), true);
     assert.equal(isValidBrandParam('sagelga'), true);
+    assert.equal(isValidBrandParam('thaipatmetal'), true);
     assert.equal(isValidBrandParam('other'), false);
     assert.equal(isValidBrandParam(null), false);
   });

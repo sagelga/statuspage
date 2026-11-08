@@ -52,6 +52,17 @@ test.describe('Status Page — navbar', () => {
     await expect(pom.navLinks.first()).toHaveText('เกมมิ่ง');
   });
 
+  test('thaipatmetal brand navbar links to its own site', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    await pom.goto('/?brand=thaipatmetal');
+
+    await expect(pom.navLogoLink).toHaveText('ไทยพัฒน์เมทัล');
+    await expect(pom.navLogoLink).toHaveAttribute('href', 'https://thaipatmetal.com');
+    await expect(pom.navLinks).toHaveCount(5);
+    await expect(pom.navLinks.first()).toHaveText('เกี่ยวกับ');
+    await expect(pom.navLinks.first()).toHaveAttribute('href', 'https://thaipatmetal.com/about');
+  });
+
   test('navbar matches beta.byteside.one chrome styles', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     const styles = await page.evaluate(() => {
@@ -285,6 +296,20 @@ test.describe('Status Page — service list', () => {
     const sagelgaRow = pom.serviceRows.filter({ has: page.locator('.component-name', { hasText: 'sagelga.com' }) });
     await expect(sagelgaRow.locator('.badge.operational')).toBeVisible({ timeout: 2000 });
     await expect(sagelgaRow.locator('.badge')).not.toHaveClass(/loading/);
+  });
+
+  test('brand toggle switches to thaipatmetal frontend and backend services', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    await page.getByRole('tab', { name: 'ไทยพัฒน์เมทัล' }).click();
+
+    await expect(pom.serviceRows).toHaveCount(2);
+    await expect(pom.serviceRows.locator('.component-name')).toHaveText([
+      'เว็บไซต์หลัก',
+      'ระบบหลังบ้าน',
+    ]);
+
+    await expect(pom.serviceRows.locator('.badge.operational')).toHaveCount(2, { timeout: 5000 });
+    await expect(pom.serviceRows.first().locator('.uptime-bar.operational').first()).toBeVisible();
   });
 
   test('sagelga brand shows badges from fast current fetch before full history arrives', async ({ page }) => {

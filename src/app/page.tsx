@@ -20,6 +20,7 @@ import { mergeStatusData } from '@/lib/status-data';
 import { loadStatusSequence } from '@/lib/load-status-sequence';
 import { getTimezoneOffsetMinutes } from '@/lib/date-range';
 import { buildStatusApiUrl } from '@/lib/status-api-url';
+import { isValidBrandParam } from '@/lib/brand-filter';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -62,8 +63,7 @@ function getInitialBrand(): BrandId {
   if (typeof window === 'undefined') return 'byteside';
   const params = new URLSearchParams(window.location.search);
   const brandParam = params.get('brand');
-  if (brandParam === 'sagelga' || brandParam === 'byteside') return brandParam;
-  return 'byteside';
+  return isValidBrandParam(brandParam) ? brandParam : 'byteside';
 }
 
 export default function Home() {
@@ -82,11 +82,9 @@ export default function Home() {
   }, [activeBrand]);
 
   useEffect(() => {
-    if (activeBrand === 'sagelga') {
-      document.documentElement.classList.add('sagelga-brand');
-    } else {
-      document.documentElement.classList.remove('sagelga-brand');
-    }
+    const root = document.documentElement;
+    root.classList.toggle('sagelga-brand', activeBrand === 'sagelga');
+    root.classList.toggle('thaipatmetal-brand', activeBrand === 'thaipatmetal');
   }, [activeBrand]);
 
   const applyData = useCallback((next: StatusResponse) => {

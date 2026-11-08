@@ -31,7 +31,7 @@ export default function StatusNavbar({ activeBrand, onBrandChange }: StatusNavba
     <Navbar
       brandName={config.brandName}
       brandHref={config.brandHref}
-      navbarBg="#52006A"
+      navbarBg={config.navbarBg}
       links={config.links}
       logo={logo}
       controls={

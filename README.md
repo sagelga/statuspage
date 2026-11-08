@@ -4,14 +4,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwind-css)](https://tailwindcss.com)
 
-Real-time status monitoring page for ByteSide.one and sagelga.com services — Thai technology and gaming brands.
+Real-time status monitoring page for ByteSide.one, sagelga.com, and Thai Pat Metal (ไทยพัฒน์เมทัล) services.
 
 ![ByteSide logo](./public/static/img/logo-large.png)
 
 ## Features
 
 - **Real-time monitoring** — Service health badges with response times from Cloudflare KV
-- **Dual-brand support** — ByteSide.one (5 services) and sagelga.com (7 services) via brand toggle
+- **Multi-brand support** — ByteSide.one (5 services), sagelga.com (7 services), and Thai Pat Metal (2 services) via brand toggle
 - **30-day history** — Daily uptime bars and per-minute mosaic drill-down
 - **Fast initial load** — Three-phase fetch: current badges → brand history → cross-brand cache
 - **Theme toggle** — Light/dark mode with system preference detection
@@ -26,6 +26,10 @@ Services are defined in the **statuspage-pulse** worker and stored in KV (`confi
 |-------|----------|
 | ByteSide.one | Cloudflare, Website, R2 Content, Notion Sync, Notion DB |
 | sagelga.com | sagelga.com, Mahjong Hands, Telegram Thai, Docs, Redirect, Static, Learn |
+| ไทยพัฒน์เมทัล | เว็บไซต์หลัก (thaipatmetal.com), ระบบหลังบ้าน (admin.thaipatmetal.com) |
+
+> The Thai Pat Metal backend is behind Cloudflare Access. `statuspage-pulse`
+> probes it with an Access service token; see that repo's README for setup.
 
 ## Getting Started
 
@@ -85,7 +89,7 @@ Query params:
 
 | Param | Purpose |
 |-------|---------|
-| `?brand=sagelga` | Initial brand selection |
+| `?brand=sagelga` | Initial brand selection (`sagelga` or `thaipatmetal`) |
 | `?tzOffset=420` | Client timezone offset (minutes east of UTC) |
 | `?currentOnly=true` | Fast path: badges only, no history |
 
@@ -137,7 +141,7 @@ Both routes use **Cloudflare Edge runtime** and read from the `STATUS_HISTORY` K
 | Query | Description |
 |-------|-------------|
 | `tzOffset` | Client offset in minutes (default 0, clamped ±12h) |
-| `brand` | `byteside` or `sagelga` — filter services |
+| `brand` | `byteside`, `sagelga`, or `thaipatmetal` — filter services |
 | `currentOnly` | `true` — skip history/uptime (fast badges) |
 
 **Response (full):**
