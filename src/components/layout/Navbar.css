@@ -207,4 +207,21 @@
 
 @media (max-width: 480px) {
   .nav-top-inner { padding: 0 0.75rem; }
+  .nav-logo-img { height: 24px; max-width: 80px; }
+  .nav-logo-text { font-size: 1.05rem; }
+}
+
+/* Very narrow phones: stack the brand pill under the logo instead of
+   squeezing three brands into one row. */
+@media (max-width: 360px) {
+  .nav-top-inner {
+    height: auto;
+    min-height: 52px;
+    padding: 6px 0.75rem;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nav-top-right { width: 100%; }
+  .nav-logo-img { max-width: 96px; }
+  .nav-logo-text { font-size: 1rem; white-space: nowrap; }
 }

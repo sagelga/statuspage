@@ -21,6 +21,24 @@ describe('brand-status helpers (shipped)', () => {
     };
     assert.equal(countLoadedForBrand(current, 'sagelga'), 7);
     assert.equal(countLoadedForBrand(current, 'byteside'), 0);
+    assert.equal(countLoadedForBrand(current, 'thaipatmetal'), 0);
+  });
+
+  it('countLoadedForBrand counts the thaipatmetal frontend service', () => {
+    const current: CurrentStatusResponse = {
+      status: 'operational',
+      checkedAt: '2026-01-01T00:00:00.000Z',
+      services: SERVICES_BY_BRAND.thaipatmetal.map((s) => ({
+        id: s.id,
+        name: s.name,
+        icon: s.icon,
+        status: 'operational',
+        responseTime: 50,
+        statusCode: 200,
+      })),
+      history: {},
+    };
+    assert.equal(countLoadedForBrand(current, 'thaipatmetal'), 1);
   });
 
   it('serviceHasHistory checks per-service 30-day arrays', () => {

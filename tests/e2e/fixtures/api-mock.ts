@@ -33,6 +33,7 @@ function buildMockForBrand(brand: BrandId): StatusResponse {
 
 export const MOCK_STATUS_BYTESIDE = buildMockForBrand('byteside');
 export const MOCK_STATUS_SAGELGA = buildMockForBrand('sagelga');
+export const MOCK_STATUS_THAIPATMETAL = buildMockForBrand('thaipatmetal');
 
 export const MOCK_STATUS: StatusResponse = {
   ...MOCK_STATUS_BYTESIDE,
@@ -46,10 +47,15 @@ export const MOCK_STATUS: StatusResponse = {
 export const MOCK_STATUS_FULL: StatusResponse = {
   status: 'operational',
   checkedAt: new Date(Date.now() - 10_000).toISOString(),
-  services: [...MOCK_STATUS_BYTESIDE.services, ...MOCK_STATUS_SAGELGA.services],
+  services: [
+    ...MOCK_STATUS_BYTESIDE.services,
+    ...MOCK_STATUS_SAGELGA.services,
+    ...MOCK_STATUS_THAIPATMETAL.services,
+  ],
   history: {
     ...MOCK_STATUS_BYTESIDE.history,
     ...MOCK_STATUS_SAGELGA.history,
+    ...MOCK_STATUS_THAIPATMETAL.history,
   },
   dailyUptime: {
     ...MOCK_STATUS_BYTESIDE.dailyUptime,
@@ -103,10 +109,12 @@ function resolveStatusBody(url: string, statusOverride?: StatusResponse): string
   if (currentOnly) {
     if (brand === 'sagelga') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_SAGELGA));
     if (brand === 'byteside') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_BYTESIDE));
+    if (brand === 'thaipatmetal') return JSON.stringify(buildCurrentOnly(MOCK_STATUS_THAIPATMETAL));
     return JSON.stringify(buildCurrentOnly(MOCK_STATUS_FULL));
   }
   if (brand === 'sagelga') return JSON.stringify(MOCK_STATUS_SAGELGA);
   if (brand === 'byteside') return JSON.stringify(MOCK_STATUS_BYTESIDE);
+  if (brand === 'thaipatmetal') return JSON.stringify(MOCK_STATUS_THAIPATMETAL);
   return JSON.stringify(MOCK_STATUS_FULL);
 }
 

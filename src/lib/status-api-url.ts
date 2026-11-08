@@ -7,7 +7,7 @@ import type { BrandId } from '@/config';
 export interface StatusApiUrlParams {
   /** Client timezone offset in minutes (east of UTC). */
   tzOffset: number;
-  /** Optional brand filter (`byteside` | `sagelga`). */
+  /** Optional brand filter (`byteside` | `sagelga` | `thaipatmetal`). */
   brand?: BrandId;
   /** When true, request badges only (fast path, empty history). */
   currentOnly?: boolean;

@@ -35,3 +35,33 @@ describe('brand-navbar byteside links', () => {
     assert.equal(BRAND_NAVBAR.byteside.brandHref, 'https://beta.byteside.one');
   });
 });
+
+describe('brand-navbar thaipatmetal links', () => {
+  const links = BRAND_NAVBAR.thaipatmetal.links;
+
+  it('has five nav items matching thaipatmetal.com labels', () => {
+    assert.deepEqual(
+      links.map((l) => l.label),
+      ['เกี่ยวกับ', 'สินค้า', 'โซลูชัน', 'ลูกค้า', 'บริการช่วยเหลือ'],
+    );
+  });
+
+  it('points to thaipatmetal.com paths', () => {
+    assert.deepEqual(
+      links.map((l) => l.href),
+      [
+        'https://thaipatmetal.com/about',
+        'https://thaipatmetal.com/products',
+        'https://thaipatmetal.com/solutions',
+        'https://thaipatmetal.com/customers',
+        'https://thaipatmetal.com/support',
+      ],
+    );
+  });
+
+  it('marks all links as external and uses a text logo', () => {
+    assert.ok(links.every((l) => l.external === true));
+    assert.equal(BRAND_NAVBAR.thaipatmetal.useImageLogo, false);
+    assert.equal(BRAND_NAVBAR.thaipatmetal.brandHref, 'https://thaipatmetal.com');
+  });
+});
