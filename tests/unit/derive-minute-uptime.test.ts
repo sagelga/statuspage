@@ -1,9 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  deriveFromMinuteMap,
-  deriveFromMinuteMapNaive,
-} from '../../src/lib/derive-minute-uptime';
+import { deriveFromMinuteMap } from '../../src/lib/derive-minute-uptime';
+import { deriveFromMinuteMapNaive } from './fixtures/derive-minute-uptime-naive';
 
 /** ~30 days of per-minute epochs (production-scale KV map). */
 function buildSyntheticMinuteMap(epochCount: number, startEpoch: number): Record<string, string> {

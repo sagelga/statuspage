@@ -2,9 +2,8 @@
  * Brand-scoped filtering for KV service lists and API query params.
  */
 import { BRANDS, SERVICES_BY_BRAND, BrandId } from '@/config';
-import type { ServiceDefinition } from '@/types';
 
-const BRAND_IDS = new Set<string>(BRANDS.map((b) => b.id));
+const BRAND_IDS = new Set<string>(BRANDS.map((brand) => brand.id));
 
 /**
  * Keep only services that belong to the given brand.
@@ -27,17 +26,4 @@ export function filterServicesByBrand<T extends { id: string }>(
  */
 export function isValidBrandParam(brand: string | null): brand is BrandId {
   return brand !== null && BRAND_IDS.has(brand);
-}
-
-/**
- * Filter ServiceDefinition objects by brand (alias for filterServicesByBrand).
- * @param services - Definitions from KV config:services
- * @param brand - Brand to keep
- * @returns Subset of definitions whose ids appear in SERVICES_BY_BRAND[brand]
- */
-export function filterServiceDefinitions(
-  services: ServiceDefinition[],
-  brand: BrandId,
-): ServiceDefinition[] {
-  return filterServicesByBrand(services, brand);
 }

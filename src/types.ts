@@ -14,6 +14,8 @@ export interface ServiceDefinition {
 }
 
 export interface ServiceResult extends Omit<ServiceDefinition, 'url'> {
+  /** Present when the KV service definition includes an endpoint URL. */
+  url?: string;
   status: ServiceStatus;
   responseTime: number | null;
   statusCode: number | null;

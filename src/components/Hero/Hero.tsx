@@ -1,4 +1,5 @@
 import React from 'react';
+import { RefreshCw, type LucideIcon } from 'lucide-react';
 import { HeroIcons } from '../Icons';
 import { ServiceStatus } from '../../types';
 import './Hero.style.css';
@@ -39,12 +40,12 @@ const KICKERS: Record<DisplayStatus, string> = {
   error: 'เชื่อมต่อข้อมูลไม่ได้',
 };
 
-const ICONS: Record<DisplayStatus, string> = {
+const ICONS: Record<DisplayStatus, LucideIcon> = {
   operational: HeroIcons.operational,
   degraded: HeroIcons.degraded,
   down: HeroIcons.down,
   loading: HeroIcons.loading,
-  error: HeroIcons.degraded,
+  error: HeroIcons.error,
 };
 
 function formatCheckedAt(value?: string): string | null {
@@ -58,21 +59,6 @@ function formatResponseTime(value: number | null): string | null {
   if (value === null || !Number.isFinite(value)) return null;
   return `${value.toLocaleString('en-US')} ms`;
 }
-
-const RefreshIcon: React.FC = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    <polyline points="21 3 21 9 15 9" />
-  </svg>
-);
 
 export const Hero: React.FC<HeroProps> = ({
   status,
@@ -89,6 +75,7 @@ export const Hero: React.FC<HeroProps> = ({
   const checkedTime = formatCheckedAt(checkedAt);
   const responseTime = affectedService ? formatResponseTime(affectedService.responseTime) : null;
   const affectedTotal = Math.max(affectedCount, affectedService ? 1 : 0);
+  const StatusIcon = ICONS[displayStatus];
 
   let sub: React.ReactNode;
   let aside: React.ReactNode = null;
@@ -116,7 +103,7 @@ export const Hero: React.FC<HeroProps> = ({
             )}
             {onRefresh && (
               <button type="button" className="hero-refresh" onClick={onRefresh}>
-                <RefreshIcon />
+                <RefreshCw aria-hidden="true" />
                 รีเฟรช
               </button>
             )}
@@ -154,7 +141,7 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
           {onRefresh && (
             <button type="button" className="hero-refresh" onClick={onRefresh}>
-              <RefreshIcon />
+              <RefreshCw aria-hidden="true" />
               รีเฟรช
             </button>
           )}
@@ -185,7 +172,7 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
           {onRefresh && (
             <button type="button" className="hero-refresh" onClick={onRefresh}>
-              <RefreshIcon />
+              <RefreshCw aria-hidden="true" />
               รีเฟรช
             </button>
           )}
@@ -206,11 +193,9 @@ export const Hero: React.FC<HeroProps> = ({
   return (
     <section className="hero" aria-busy={displayStatus === 'loading'}>
       <div className={`hero-banner ${displayStatus}`}>
-        <div
-          className="hero-icon"
-          aria-hidden="true"
-          dangerouslySetInnerHTML={{ __html: ICONS[displayStatus] }}
-        ></div>
+        <div className="hero-icon" aria-hidden="true">
+          <StatusIcon className={displayStatus === 'loading' ? 'spin' : undefined} />
+        </div>
         <div className="hero-text">
           <p className="hero-kicker">
             <span className="hero-live-dot" aria-hidden="true"></span>
@@ -220,7 +205,7 @@ export const Hero: React.FC<HeroProps> = ({
           <p className="hero-sub">{sub}</p>
           {displayStatus === 'error' && onRefresh && (
             <button type="button" className="hero-retry" onClick={onRefresh}>
-              <RefreshIcon />
+              <RefreshCw aria-hidden="true" />
               ลองอีกครั้ง
             </button>
           )}

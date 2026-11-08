@@ -26,21 +26,3 @@ export function setCookiePreferences(preferences: CookiePreferences): void {
     console.warn("Failed to save cookie preferences");
   }
 }
-
-export function hasConsent(): boolean {
-  return getCookiePreferences().consentGiven;
-}
-
-export function hasAnalyticsConsent(): boolean {
-  const prefs = getCookiePreferences();
-  return prefs.consentGiven && prefs.analytics;
-}
-
-export function clearCookiePreferences(): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(COOKIE_STORAGE_KEY);
-  } catch {
-    console.warn("Failed to clear cookie preferences");
-  }
-}

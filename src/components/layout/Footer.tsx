@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Cookie, Heart, Sun } from "lucide-react";
 import { FooterColumn } from "@/types";
 import ThemeSettingsModal from "@/components/theme/ThemeSettingsModal";
 import CookieSettingsModal from "@/components/cookies/CookieSettingsModal";
@@ -17,6 +17,19 @@ interface FooterProps {
   author?: string;
   authorHref?: string;
   copyrightStart?: number;
+}
+
+/** Renders "Product by author" with the author part visually de-emphasised. */
+function FooterTagline({ tagline }: { tagline: string }) {
+  const byIndex = tagline.lastIndexOf(' by ');
+  if (byIndex === -1) return <>{tagline}</>;
+
+  return (
+    <>
+      <span className="footer-tagline-product">{tagline.slice(0, byIndex)}</span>{' '}
+      <span className="footer-tagline-by">by {tagline.slice(byIndex + 4)}</span>
+    </>
+  );
 }
 
 export default function Footer({
@@ -41,11 +54,7 @@ export default function Footer({
               {brandName}
             </Link>
             <p className="footer-tagline">
-              {(() => {
-                const byIdx = tagline.lastIndexOf(' by ');
-                if (byIdx === -1) return tagline;
-                return (<><span className="footer-tagline-product">{tagline.slice(0, byIdx)}</span>{' '}<span className="footer-tagline-by">by {tagline.slice(byIdx + 4)}</span></>);
-              })()}
+              <FooterTagline tagline={tagline} />
             </p>
           </div>
           <div className="footer-columns">
@@ -107,27 +116,7 @@ export default function Footer({
                 onClick={() => setShowTheme(true)}
                 aria-label="Theme settings"
               >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="5" />
-                  <line x1="12" y1="1" x2="12" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="23" />
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                  <line x1="1" y1="12" x2="3" y2="12" />
-                  <line x1="21" y1="12" x2="23" y2="12" />
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
+                <Sun size={13} strokeWidth={2.2} aria-hidden="true" />
                 <span>Theme</span>
               </button>
               <button
@@ -135,22 +124,7 @@ export default function Footer({
                 onClick={() => setShowCookies(true)}
                 aria-label="Cookie settings"
               >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" />
-                  <path d="M8.5 8.5v.01" />
-                  <path d="M16 15.5v.01" />
-                  <path d="M12 12v.01" />
-                </svg>
+                <Cookie size={13} strokeWidth={2.2} aria-hidden="true" />
                 <span>Cookies</span>
               </button>
             </div>

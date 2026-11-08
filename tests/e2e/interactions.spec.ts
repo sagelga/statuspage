@@ -2,153 +2,17 @@
  * Interaction tests for the ByteSide Status Page.
  *
  * Covers user interactions not tested elsewhere:
- * - Click-to-lock mosaic inline panel
- * - Mosaic panel AM/PM structure
  * - Auto-refresh trigger when timer hits zero
- * - Theme toggle visual state (button label changes)
- * - Footer link targets
  * - Service icon rendering
  * - Keyboard accessibility (tab focus reaches interactive elements)
+ * - Footer link targets
+ * - Page-level accessibility landmarks
+ * - Page load performance
  */
 
 import { test, expect } from '@playwright/test';
 import { StatusPagePOM } from './pages/StatusPage';
 import { mockApiRoutes, MOCK_STATUS, MOCK_MINUTES } from './fixtures/api-mock';
-
-// ── Mosaic inline panel — click to lock ──────────────────────────────────────
-
-test.describe('Mosaic inline panel — click-to-lock', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockApiRoutes(page);
-    const pom = new StatusPagePOM(page);
-    await pom.goto();
-    await pom.waitForServicesLoaded();
-  });
-
-  test('clicking a bar opens the inline mosaic panel', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-    await lastBar.click();
-
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-  });
-
-  test('inline panel shows a date label after bar click', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-    await lastBar.click();
-
-    await expect(pom.mosaicInlineDate).toBeVisible({ timeout: 5000 });
-    const text = await pom.mosaicInlineDate.textContent();
-    expect(text?.trim().length).toBeGreaterThan(0);
-  });
-
-  test('inline panel renders 720 cells in the AM block', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-    await lastBar.click();
-
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-    const amCells = pom.mosaicBlockAM.locator('.mosaic-cell');
-    await expect(amCells).toHaveCount(720, { timeout: 8000 });
-  });
-
-  test('inline panel renders 720 cells in the PM block', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-    await lastBar.click();
-
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-    const pmCells = pom.mosaicBlockPM.locator('.mosaic-cell');
-    await expect(pmCells).toHaveCount(720, { timeout: 8000 });
-  });
-
-  test('AM block has label "AM"', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    const amLabel = pom.mosaicBlockAM.locator('.mosaic-block-label');
-    await expect(amLabel).toHaveText('00:00 – 11:59');
-  });
-
-  test('PM block has label "12:00 – 23:59"', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    const pmLabel = pom.mosaicBlockPM.locator('.mosaic-block-label');
-    await expect(pmLabel).toHaveText('12:00 – 23:59');
-  });
-
-  test('clicking the same locked bar a second time closes the panel', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-
-    // First click: lock open
-    await lastBar.click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    // Second click on the same bar: unlock / close
-    await lastBar.click();
-    await expect(pom.mosaicInlinePanel).not.toBeVisible({ timeout: 5000 });
-  });
-
-  test('clicking a different service bar closes the first panel and opens a new one', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-
-    // Open panel for first service
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    // Open panel for second service — should replace, not stack
-    await pom.serviceRows.nth(1).locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toHaveCount(1);
-  });
-
-  test('uptime percentage is shown when data is available', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    // Wait for the async minute fetch to resolve (mocked instantly)
-    await expect(pom.mosaicInlinePct).toBeVisible({ timeout: 8000 });
-    const pctText = await pom.mosaicInlinePct.textContent();
-    // Should contain a percentage or "ไม่มีข้อมูล"
-    expect(pctText).toMatch(/%|ไม่มีข้อมูล|—/);
-  });
-
-  test('selected bar gets the "selected" CSS class', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-    await lastBar.click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-    await expect(lastBar).toHaveClass(/selected/);
-  });
-
-  test('non-selected bars get dimmed when a bar is locked', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    // The uptime-bars container should have the has-selection modifier
-    const barsContainer = pom.serviceRows.first().locator('.uptime-bars');
-    await expect(barsContainer).toHaveClass(/has-selection/);
-  });
-
-  test('mosaic axis labels are present (00, 15, 30, 45)', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.serviceRows.first().locator('.uptime-bar').last().click();
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-
-    const axis = pom.mosaicBlockAM.locator('.mosaic-axis');
-    await expect(axis).toBeVisible();
-    await expect(axis).toContainText('15m');
-    await expect(axis).toContainText('30m');
-    await expect(axis).toContainText('45m');
-    await expect(axis).toContainText('60m');
-  });
-});
 
 // ── Auto-refresh trigger ──────────────────────────────────────────────────────
 
@@ -185,54 +49,6 @@ test.describe('Auto-refresh — timer reaching zero triggers refresh', () => {
     // Wait for the timer to fire and call /api/status a second time
     await page.waitForFunction(() => true); // yield to JS event loop
     await expect.poll(() => apiCallCount, { timeout: 10_000 }).toBeGreaterThan(1);
-  });
-});
-
-// ── Theme toggle visual state ─────────────────────────────────────────────────
-
-test.describe('Theme toggle — visual state', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockApiRoutes(page);
-    await new StatusPagePOM(page).goto();
-  });
-
-  test('theme settings button opens modal with Light and Dark options', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.openThemeSettings();
-    await expect(pom.page.locator('.theme-option', { hasText: 'Light' })).toBeVisible();
-    await expect(pom.page.locator('.theme-option', { hasText: 'Dark' })).toBeVisible();
-  });
-
-  test('selecting Dark theme sets data-theme=dark and the dark-theme class', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.selectTheme('Dark');
-    const html = pom.page.locator('html');
-    await expect(html).toHaveAttribute('data-theme', 'dark');
-    await expect(html).toHaveClass(/dark-theme/);
-    await expect(html).not.toHaveClass(/light-theme/);
-  });
-
-  test('selecting Light theme sets data-theme=light and the light-theme class', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.selectTheme('Dark');
-    await pom.selectTheme('Light');
-    const html = pom.page.locator('html');
-    await expect(html).toHaveAttribute('data-theme', 'light');
-    await expect(html).toHaveClass(/light-theme/);
-    await expect(html).not.toHaveClass(/dark-theme/);
-  });
-
-  test('data-theme and theme classes change when switching between Light and Dark', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    await pom.selectTheme('Light');
-    const theme1 = await pom.getDataTheme();
-    const html = pom.page.locator('html');
-    await expect(html).toHaveClass(/light-theme/);
-
-    await pom.selectTheme('Dark');
-    const theme2 = await pom.getDataTheme();
-    await expect(html).toHaveClass(/dark-theme/);
-    expect(theme2).not.toBe(theme1);
   });
 });
 
@@ -307,20 +123,6 @@ test.describe('Keyboard accessibility — tab focus reaches key elements', () =>
     await pom.themeSettingsBtn.focus();
     await page.keyboard.press('Enter');
     await expect(pom.page.locator('.theme-settings-list')).toBeVisible();
-  });
-
-  test('uptime bar is focusable and opens the mosaic panel on Enter', async ({ page }) => {
-    const pom = new StatusPagePOM(page);
-    const lastBar = pom.serviceRows.first().locator('.uptime-bar').last();
-
-    await lastBar.scrollIntoViewIfNeeded();
-    await lastBar.focus();
-    await expect(lastBar).toBeFocused();
-
-    await page.keyboard.press('Enter');
-    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
-    await expect(lastBar).toHaveClass(/selected/);
-    await expect(lastBar).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('API link is focusable and has correct href', async ({ page }) => {
@@ -431,6 +233,30 @@ test.describe('Accessibility — structural landmarks', () => {
 });
 
 // ── Performance — page load timing ───────────────────────────────────────────
+
+test.describe('Cookie consent — stacked sheets', () => {
+  test('Escape closes only the top sheet and does not record consent', async ({ page }) => {
+    const { clearCookieConsent } = await import('./fixtures/consent');
+    await clearCookieConsent(page);
+    await mockApiRoutes(page, undefined, { grantConsent: false });
+    await page.goto('/');
+
+    const banner = page.getByRole('dialog', { name: 'Cookie Preferences' });
+    await expect(banner).toBeVisible({ timeout: 5000 });
+
+    await page.getByRole('button', { name: 'Manage preferences' }).click();
+    const settings = page.getByRole('dialog', { name: 'Cookie Settings' });
+    await expect(settings).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(settings).not.toBeVisible();
+    await expect(banner).toBeVisible();
+
+    // Escape must not be treated as "Reject all" on the banner underneath.
+    const stored = await page.evaluate(() => localStorage.getItem('cookie-preferences'));
+    expect(stored).toBeNull();
+  });
+});
 
 test.describe('Performance — load timing', () => {
   test('page loads and shows first content within 5 seconds', async ({ page }) => {

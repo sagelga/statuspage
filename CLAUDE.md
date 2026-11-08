@@ -39,6 +39,16 @@ ByteSide is a Thai-native tech and gaming brand with personality. The status pag
 
 ### Code layout (for agents)
 
-- Active shell components live under `components/layout/` (Navbar, Footer), not top-level `components/Navbar/`.
-- Shared logic is in `src/lib/` (`decode-status`, `date-range`, `load-status-sequence`, `status-data`, etc.).
-- API routes are Edge + KV-backed; service definitions in KV come from the statuspage-pulse worker.
+- Active shell components live under `components/layout/` (Navbar, Footer, StatusNavbar), not top-level `components/Navbar/`.
+- `src/app/page.tsx` is a server wrapper that reads `?brand=` from `searchParams` and passes `initialBrand` to `src/components/StatusPageClient.tsx`, so SSR and hydration agree.
+- `StatusPageClient.tsx` renders the page shell. Client state lives in `src/hooks/useStatusData.ts` (three-phase load, brand switch, refresh).
+- `src/components/ServiceList/` is split into `ServiceList.tsx` (container/state), `ServiceRow.tsx`, `UptimeBars.tsx`, `MinuteMosaic.tsx`, `ServiceBadge.tsx`, and `types.ts`.
+- Shared logic lives in `src/lib/`:
+  - `status-policy.ts` — status aggregation and uptime thresholds.
+  - `status-response.ts` — API response builders with an injected `StatusStore`.
+  - `status-kv.ts` — resolves the `STATUS_HISTORY` binding for the route handlers.
+  - `daily-summary.ts`, `minute-map.ts`, `minute-cells.ts` — daily history and minute-cell parsing.
+- API routes are thin handlers over those modules and run on Cloudflare Workers with the Node.js runtime through OpenNext. KV access goes through `getCloudflareContext()` in `status-kv.ts`.
+- Deployment is configured in `wrangler.jsonc` (`.open-next/worker.js`, `ASSETS`, `nodejs_compat`, `STATUS_HISTORY`) and `open-next.config.ts`.
+- Service definitions in KV come from the statuspage-pulse worker.
+- Unit tests run with `npm run test:unit`; Playwright e2e runs with `npm run test:e2e` and is fully parallel.
