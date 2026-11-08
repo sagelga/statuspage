@@ -19,7 +19,7 @@
 
   /* Status colors */
   --ok: #16a34a;        --ok-bg: #dcfce7;         --ok-text: #166534;
-  --warn: #ca8a04;      --warn-bg: #fef9c3;       --warn-text: #854d0e;
+  --warn: #b45309;      --warn-bg: #fef9c3;       --warn-text: #854d0e;
   --err: #dc2626;       --err-bg: #fee2e2;        --err-text: #991b1b;
   --gray: #6b7280;      --gray-bg: #f3f4f6;
 
