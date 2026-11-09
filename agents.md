@@ -10,6 +10,7 @@
 - [2026-11-09] [fix] Align service endpoints with incident-based pulse checks (Cloudflare unresolved incidents, Notion public status feed) — files: src/config.ts, src/types.ts, tests/unit/service-config.test.ts
 
 - [2026-11-09] [fix] Mosaic dots now render at an identical size (integer-pixel square tracks via `round()`, `justify-content: space-between`, `aspect-ratio: 1`) — files: src/components/ServiceList/ServiceList.style.css, tests/e2e/mosaic.spec.ts
+- [2026-11-09] [design] Refined the cookie preferences sheet with brand/theme-aware surfaces, icon-led categories, a saved-consent timestamp, larger switches, and an essential-only action — files: src/components/ui/BottomSheet.tsx, src/components/ui/BottomSheet.css, src/components/cookies/CookieSettingsModal.tsx, src/components/cookies/CookieSettingsModal.css, tests/e2e/cookie-settings.spec.ts
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
