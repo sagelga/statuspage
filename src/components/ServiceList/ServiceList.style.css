@@ -318,16 +318,25 @@
 }
 
 /* Full-width grid: 12 rows × 60 columns */
+/* Tracks are floored to whole pixels so every cell renders at an identical
+   size. Fractional 1fr tracks (415px / 60) split into 5.4375px + 5.4531px,
+   which rasterizes as a mix of 5px and 6px cells. `justify-content:
+   space-between` absorbs the rounding remainder into the gaps so the row still
+   fills the block. Falls back to 1fr where round() is unsupported. */
 .mosaic-half-grid {
+  --mosaic-cols: 60;
+  --mosaic-min-gap: 1.5px;
   display: grid;
   grid-template-columns: repeat(60, 1fr);
-  grid-auto-rows: 5px;
-  gap: 1.5px;
+  grid-template-columns: repeat(var(--mosaic-cols), round(down, (100% - (var(--mosaic-cols) - 1) * var(--mosaic-min-gap)) / var(--mosaic-cols), 1px));
+  grid-auto-rows: auto;
+  gap: var(--mosaic-min-gap);
+  justify-content: space-between;
   width: 100%;
 }
 
 /* Cells */
-.mosaic-cell { border-radius: 1px; }
+.mosaic-cell { aspect-ratio: 1 / 1; border-radius: 1px; }
 .mosaic-cell.operational { background: var(--ok); }
 .mosaic-cell.degraded    { background: var(--warn); }
 .mosaic-cell.down        { background: var(--err); }
@@ -418,6 +427,6 @@
   .component-row .uptime-bars { height: 32px; gap: 2.5px; }
   .component-row .uptime-bar { min-width: 0; border-radius: 6px; }
   .load-error-panel { padding: 2.25rem 1.25rem; }
-  /* Slightly taller cells on small screens for easier reading */
-  .mosaic-half-grid { grid-auto-rows: 4px; gap: 1px; }
+  /* Tighter gaps on small screens for easier reading */
+  .mosaic-half-grid { --mosaic-min-gap: 1px; }
 }

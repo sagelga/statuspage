@@ -103,6 +103,29 @@ test.describe('Mosaic inline panel — click-to-lock', () => {
     await expect(pmCells).toHaveCount(720, { timeout: 8000 });
   });
 
+  test('all mosaic cells render at an identical size', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    await pom.serviceRows.first().locator('.uptime-bar').last().click();
+
+    await expect(pom.mosaicInlinePanel).toBeVisible({ timeout: 5000 });
+
+    for (const block of [pom.mosaicBlockAM, pom.mosaicBlockPM]) {
+      const sizes = await block.locator('.mosaic-cell').evaluateAll((cells) => {
+        const rects = cells.map((c) => c.getBoundingClientRect());
+        const widths = [...new Set(rects.map((r) => Math.round(r.width * 100) / 100))];
+        const heights = [...new Set(rects.map((r) => Math.round(r.height * 100) / 100))];
+        return { widths, heights };
+      });
+
+      // Fractional 1fr tracks split into mixed widths (5.4375px vs 5.4531px),
+      // which rasterizes as alternating 5px and 6px cells.
+      expect(sizes.widths, 'cell widths must all be identical').toHaveLength(1);
+      expect(sizes.heights, 'cell heights must all be identical').toHaveLength(1);
+      // Cells must be square, not stretched rectangles.
+      expect(sizes.widths[0]).toBe(sizes.heights[0]);
+    }
+  });
+
   test('AM block has label "AM"', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await pom.serviceRows.first().locator('.uptime-bar').last().click();
