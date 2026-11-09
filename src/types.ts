@@ -11,6 +11,7 @@ export interface ServiceDefinition {
   icon: string;
   url: string;
   jsonStatus?: { path: string; map: Record<string, ServiceStatus> };
+  incidentStatus?: { path: string; map: Record<string, ServiceStatus>; unresolvedOnly?: boolean };
 }
 
 export interface ServiceResult extends Omit<ServiceDefinition, 'url'> {
