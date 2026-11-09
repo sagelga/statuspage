@@ -10,6 +10,7 @@
 - [2026-11-09] [fix] Align service endpoints with incident-based pulse checks (Cloudflare unresolved incidents, Notion public status feed) — files: src/config.ts, src/types.ts, tests/unit/service-config.test.ts
 
 - [2026-11-09] [fix] Mosaic dots now render at an identical size (integer-pixel square tracks via `round()`, `justify-content: space-between`, `aspect-ratio: 1`) — files: src/components/ServiceList/ServiceList.style.css, tests/e2e/mosaic.spec.ts
+- [2026-11-09] [chore] Deployed the status page as an OpenNext Worker on status.sagelga.com (replacing the deleted Pages project), enabled smart placement and Worker cache, and reset the poisoned minute/daily KV history — files: wrangler.jsonc
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

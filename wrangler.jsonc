@@ -5,6 +5,15 @@
   "upload_source_maps": true,
   "compatibility_date": "2026-03-16",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "status.sagelga.com", "custom_domain": true }
+  ],
+  "placement": {
+    "mode": "smart"
+  },
+  "cache": {
+    "enabled": true
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
