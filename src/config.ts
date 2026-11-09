@@ -45,11 +45,11 @@ export const SERVICES_BY_BRAND: Record<BrandId, ServiceDefinition[]> = {
   byteside: [
     // Services loaded from KV config:services (pulse worker)
     // These entries match the pulse config for display purposes only
-    { id: 'cloudflare',  name: 'เครือข่าย Cloudflare',    icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/status.json' },
+    { id: 'cloudflare',  name: 'เครือข่าย Cloudflare',    icon: 'shield',     url: 'https://www.cloudflarestatus.com/api/v2/incidents/unresolved.json' },
     { id: 'website',     name: 'เว็บไซต์',                icon: 'globe',      url: 'https://beta.byteside.one' },
     { id: 'r2-content',  name: 'โฮสต์รูปภาพและวิดีโอ',    icon: 'image',      url: 'https://s.byteside.one/image/genshin/elemental-reaction/Element_Electro.webp' },
     { id: 'notion-sync', name: 'ระบบดึงข้อมูลจาก Notion', icon: 'refresh-cw', url: 'https://fetcher.byteside.one/api/health' },
-    { id: 'notion',      name: 'ฐานข้อมูล Notion',        icon: 'database',   url: 'https://www.notion.so/' },
+    { id: 'notion',      name: 'ฐานข้อมูล Notion',        icon: 'database',   url: 'https://www.notion-status.com/api/v2/incidents.json' },
   ],
   sagelga: [
     // Services loaded from KV config:services (pulse worker)
