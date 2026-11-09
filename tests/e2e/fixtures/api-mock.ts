@@ -15,11 +15,19 @@ function buildMockForBrand(brand: BrandId): StatusResponse {
   const history = Object.fromEntries(
     services.map((s) => [s.id, new Array(30).fill('operational')]),
   );
+  const dailyUptime = Object.fromEntries(
+    services.map((s) => [s.id, new Array<number>(30).fill(100)]),
+  );
+  const dailyFuncUptime = Object.fromEntries(
+    services.map((s) => [s.id, new Array<number>(30).fill(100)]),
+  );
   return {
     status: 'operational',
     checkedAt: new Date(Date.now() - 10_000).toISOString(),
     services,
     history,
+    dailyUptime,
+    dailyFuncUptime,
   };
 }
 
@@ -48,6 +56,16 @@ export const MOCK_STATUS_FULL: StatusResponse = {
     ...MOCK_STATUS_BYTESIDE.history,
     ...MOCK_STATUS_SAGELGA.history,
     ...MOCK_STATUS_THAIPATMETAL.history,
+  },
+  dailyUptime: {
+    ...MOCK_STATUS_BYTESIDE.dailyUptime,
+    ...MOCK_STATUS_SAGELGA.dailyUptime,
+    ...MOCK_STATUS_THAIPATMETAL.dailyUptime,
+  },
+  dailyFuncUptime: {
+    ...MOCK_STATUS_BYTESIDE.dailyFuncUptime,
+    ...MOCK_STATUS_SAGELGA.dailyFuncUptime,
+    ...MOCK_STATUS_THAIPATMETAL.dailyFuncUptime,
   },
 };
 

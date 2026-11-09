@@ -81,11 +81,12 @@ export default function RootLayout({
                 const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const isDark = theme === 'system' ? systemDark : theme === 'dark';
                 const html = document.documentElement;
-                if (isDark) {
-                  html.setAttribute('data-theme', 'dark');
-                } else {
-                  html.setAttribute('data-theme', 'light');
-                }
+                html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                html.classList.toggle('dark-theme', isDark);
+                html.classList.toggle('light-theme', !isDark);
+                const brand = new URLSearchParams(window.location.search).get('brand');
+                html.classList.toggle('sagelga-brand', brand === 'sagelga');
+                html.classList.toggle('thaipatmetal-brand', brand === 'thaipatmetal');
               })();
             `,
           }}

@@ -71,12 +71,17 @@ export function useStatusData(initialBrand: BrandId): UseStatusDataResult {
           currentOnly: true,
         });
         const response = await fetch(url);
-        if (!response.ok) return;
+        if (activeBrandRef.current !== brand) return;
+        if (!response.ok) {
+          setError(true);
+          return;
+        }
         const payload: CurrentStatusResponse = await response.json();
         if (activeBrandRef.current !== brand) return;
         applyData(mergeStatusData(dataRef.current, payload));
       } catch (err) {
         console.error('Current status fetch failed:', err);
+        if (activeBrandRef.current === brand) setError(true);
       }
     },
     [applyData],
@@ -87,12 +92,17 @@ export function useStatusData(initialBrand: BrandId): UseStatusDataResult {
       try {
         const url = buildStatusApiUrl({ tzOffset: getTimezoneOffsetMinutes(), brand });
         const response = await fetch(url);
-        if (!response.ok) return;
+        if (activeBrandRef.current !== brand) return;
+        if (!response.ok) {
+          setError(true);
+          return;
+        }
         const payload: StatusResponse = await response.json();
         if (activeBrandRef.current !== brand) return;
         applyData(mergeStatusData(dataRef.current, payload));
       } catch (err) {
         console.error('Brand full status fetch failed:', err);
+        if (activeBrandRef.current === brand) setError(true);
       }
     },
     [applyData],
@@ -122,14 +132,18 @@ export function useStatusData(initialBrand: BrandId): UseStatusDataResult {
         brand,
       });
       const fullResponse = await fetch(fullUrl);
-      if (!fullResponse.ok) return;
+      if (!fullResponse.ok) {
+        setError(true);
+        return;
+      }
       const fullPayload: StatusResponse = await fullResponse.json();
       if (activeBrandRef.current !== brand) return;
       applyData(mergeStatusData(dataRef.current, fullPayload));
       lastFullRefreshRef.current = now;
     } catch (err) {
       console.error(err);
-      if (!dataRef.current) setError(true);
+      // Keep cached data visible, but tell the user it may be stale.
+      if (activeBrandRef.current === brand) setError(true);
     }
   }, [applyData]);
 
@@ -161,7 +175,7 @@ export function useStatusData(initialBrand: BrandId): UseStatusDataResult {
         if (!hadFull && !dataRef.current) setError(true);
       } catch (err) {
         console.error(err);
-        if (!cancelled && !dataRef.current) setError(true);
+        if (!cancelled && activeBrandRef.current === brand) setError(true);
       }
     })();
 

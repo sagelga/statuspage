@@ -25,6 +25,7 @@ interface ServiceRowProps {
   isExpanded: boolean;
   openTooltip: boolean;
   timezoneLabel: string;
+  visibleDays: number;
   onToggleTooltip: () => void;
   onBarHover: (dayIndex: number, dateIso: string, label: string) => void;
   onBarClick: (dayIndex: number, dateIso: string, label: string) => void;
@@ -37,6 +38,25 @@ function uptimeColor(pct: string | null): string {
   if (value >= UPTIME_OPERATIONAL_THRESHOLD) return 'var(--ok-text)';
   if (value >= UPTIME_DEGRADED_THRESHOLD) return 'var(--warn-text)';
   return 'var(--err-text)';
+}
+
+/** Endpoint host shown under the service name. Never throws on malformed URLs. */
+function getEndpointHost(url?: string): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+/** Average of all known daily uptime values, rounded to two decimals. */
+function compute30DayUptime(days?: (number | null)[]): string | null {
+  if (!days || days.length === 0) return null;
+  const known = days.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  if (known.length === 0) return null;
+  const average = known.reduce((sum, value) => sum + value, 0) / known.length;
+  return (Math.round(average * 100) / 100).toFixed(2);
 }
 
 /** One service card: header, 30-day bars, and optional minute mosaic. */
@@ -53,6 +73,7 @@ export function ServiceRow({
   isExpanded,
   openTooltip,
   timezoneLabel,
+  visibleDays,
   onToggleTooltip,
   onBarHover,
   onBarClick,
@@ -62,6 +83,16 @@ export function ServiceRow({
   const historyReady = serviceHasHistory(history, definition.id);
   const barsHistoryLoading = isLoaded && historyLoading && !historyReady;
   const Icon = Icons[definition.icon];
+  const endpointHost = getEndpointHost(definition.url);
+  const uptime30 = compute30DayUptime(dailyUptime?.[definition.id]);
+  const uptime30Num = uptime30 !== null ? parseFloat(uptime30) : null;
+  const uptime30Class = uptime30Num === null ? 'is-none'
+    : uptime30Num >= UPTIME_OPERATIONAL_THRESHOLD ? 'is-ok'
+    : uptime30Num >= UPTIME_DEGRADED_THRESHOLD ? 'is-warn'
+    : 'is-err';
+  const uptime30Label = uptime30 !== null
+    ? `ความพร้อมใช้งาน 30 วัน ${uptime30} เปอร์เซ็นต์`
+    : 'ยังไม่มีข้อมูลความพร้อมใช้งาน 30 วัน';
 
   const pct = isExpanded && expanded ? calculateOperationalPct(expanded.minutes) : null;
 
@@ -71,7 +102,12 @@ export function ServiceRow({
     >
       <div className="component-top">
         <span className="component-icon">{Icon ? <Icon /> : null}</span>
-        <span className="component-name">{definition.name}</span>
+        <div className="component-name-wrap">
+          <span className="component-name">{definition.name}</span>
+          {endpointHost && (
+            <span className="component-url" title={definition.url}>{endpointHost}</span>
+          )}
+        </div>
 
         {definition.url && (
           <div className="info-btn-wrap">
@@ -126,7 +162,14 @@ export function ServiceRow({
       </div>
 
       <div className="uptime-row" onMouseLeave={() => isLoaded && onRowLeave()}>
+        <div className="uptime-head">
+          <span className="uptime-label">ความพร้อมใช้งาน 30 วัน</span>
+          <span className={`uptime-pct ${uptime30Class}`} aria-label={uptime30Label} title={uptime30Label}>
+            <b>{uptime30 !== null ? `${uptime30}%` : '—'}</b>
+          </span>
+        </div>
         <UptimeBars
+          serviceName={definition.name}
           loaded={loaded}
           history={history?.[definition.id]}
           dailyUptime={dailyUptime?.[definition.id]}
@@ -137,12 +180,13 @@ export function ServiceRow({
           isLoaded={isLoaded}
           isExpanded={isExpanded}
           selectedDayIndex={expanded?.dayIndex}
+          visibleDays={visibleDays}
           onHover={onBarHover}
           onClick={onBarClick}
         />
 
         <div className="uptime-footer">
-          <span>30 วันก่อน</span>
+          <span>{visibleDays} วันก่อน</span>
           {!isExpanded && <span className="uptime-hint">กดที่แถบเพื่อดูรายนาที</span>}
           <span>วันนี้</span>
         </div>

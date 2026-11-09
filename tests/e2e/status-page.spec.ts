@@ -139,18 +139,23 @@ test.describe('Status Page — hero banner', () => {
     await expect(pom.serviceRows.first().locator('.uptime-bar.loading').first()).toBeVisible();
   });
 
-  test('hides hero banner when all services are operational', async ({ page }) => {
+  test('always shows the all-clear banner when all services are operational', async ({ page }) => {
     await mockApiRoutes(page);
     const pom = new StatusPagePOM(page);
     await pom.goto();
     await pom.waitForStatusLoaded();
 
-    await expect(pom.heroBanner).toHaveCount(0);
+    await expect(pom.heroBanner).toHaveClass(/operational/);
+    await expect(pom.heroTitle).toHaveText('ทุกระบบทำงานปกติ');
+    await expect(pom.heroSub).toContainText('5 บริการ');
+    await expect(pom.heroBanner.locator('.hero-uptime b')).toHaveText('100.00%');
+    await expect(pom.heroRefresh).toBeVisible();
+
     const badges = pom.serviceRows.locator('.badge.operational');
     await expect(badges).toHaveCount(5);
   });
 
-  test('shows degraded banner when a service is slow', async ({ page }) => {
+  test('shows degraded banner when a service is slow, naming the service', async ({ page }) => {
     const degraded = {
       ...MOCK_STATUS,
       status: 'degraded' as const,
@@ -164,9 +169,12 @@ test.describe('Status Page — hero banner', () => {
     await pom.waitForStatusLoaded();
 
     await expect(pom.heroBanner).toHaveClass(/degraded/);
+    await expect(pom.heroTitle).toHaveText('บางบริการทำงานช้าลง');
+    await expect(pom.heroSub).toContainText(degraded.services[0].name);
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการที่มีปัญหา');
   });
 
-  test('shows down banner when a service is down', async ({ page }) => {
+  test('shows down banner when a service is down, naming the service', async ({ page }) => {
     const down = {
       ...MOCK_STATUS,
       status: 'down' as const,
@@ -180,9 +188,12 @@ test.describe('Status Page — hero banner', () => {
     await pom.waitForStatusLoaded();
 
     await expect(pom.heroBanner).toHaveClass(/down/);
+    await expect(pom.heroTitle).toHaveText('มีบริการที่ใช้งานไม่ได้');
+    await expect(pom.heroSub).toContainText(down.services[0].name);
+    await expect(pom.heroBanner.locator('.hero-uptime')).toContainText('บริการที่ใช้งานไม่ได้');
   });
 
-  test('shows error banner when API call fails', async ({ page }) => {
+  test('shows error banner when API call fails — and never the down banner', async ({ page }) => {
     const { grantCookieConsent } = await import('./fixtures/consent');
     await grantCookieConsent(page);
     await page.route('**/api/status**', (route) => route.abort('failed'));
@@ -190,6 +201,10 @@ test.describe('Status Page — hero banner', () => {
     const pom = new StatusPagePOM(page);
     await pom.goto();
     // Wait for fetch to fail and component to re-render
-    await expect(pom.heroTitle).toHaveText('ไม่สามารถโหลดสถานะได้', { timeout: 10000 });
+    await expect(pom.heroTitle).toHaveText('ตรวจสอบสถานะไม่ได้', { timeout: 10000 });
+    await expect(pom.heroBanner).toHaveClass(/error/);
+    await expect(pom.heroBanner).not.toHaveClass(/down/);
+    await expect(pom.loadErrorPanel).toBeVisible();
+    await expect(pom.loadErrorRetry).toBeVisible();
   });
 });

@@ -50,11 +50,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const html = document.documentElement;
-    if (resolvedTheme === "dark") {
-      html.setAttribute("data-theme", "dark");
-    } else {
-      html.setAttribute("data-theme", "light");
-    }
+    const isDark = resolvedTheme === "dark";
+    // Keep the attribute (tests + consumers) and the CSS class (theme rules) in sync.
+    html.setAttribute("data-theme", isDark ? "dark" : "light");
+    html.classList.toggle("dark-theme", isDark);
+    html.classList.toggle("light-theme", !isDark);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme, resolvedTheme]);
 

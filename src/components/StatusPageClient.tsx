@@ -78,6 +78,25 @@ export default function StatusPageClient({ initialBrand }: { initialBrand: Brand
       ? aggregateStatus(brandServices.map((service) => service.status))
       : 'loading';
 
+  const affectedService = brandServices?.find((service) => service.status === 'down')
+    ?? brandServices?.find((service) => service.status === 'degraded')
+    ?? null;
+  const downCount = brandServices?.filter((service) => service.status === 'down').length ?? 0;
+  const affectedCount = brandServices?.filter((service) => service.status !== 'operational').length ?? 0;
+
+  const uptime30d = (() => {
+    if (!data?.dailyUptime) return null;
+    const perService = visibleServices.map((service) => {
+      const values = (data.dailyUptime?.[service.id] ?? [])
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+      if (values.length === 0) return null;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    });
+    if (perService.some((value) => value === null)) return null;
+    const average = (perService as number[]).reduce((sum, value) => sum + value, 0) / perService.length;
+    return Math.round(average * 100) / 100;
+  })();
+
   const activeBrandMeta = BRANDS.find((brand) => brand.id === activeBrand) ?? BRANDS[0];
   const historyLoading = data !== null && !brandHasHistory(data, activeBrand);
 
@@ -90,9 +109,19 @@ export default function StatusPageClient({ initialBrand }: { initialBrand: Brand
       <StatusNavbar activeBrand={activeBrand} onBrandChange={changeBrand} />
       <div className={`page-wrap${brandFading ? ' brand-fade' : ''}`}>
         <Hero
-          status={error ? 'down' : brandStatus}
+          status={brandStatus}
           checkedAt={data?.checkedAt}
           error={error}
+          serviceCount={visibleServices.length}
+          affectedService={affectedService ? {
+            name: affectedService.name,
+            responseTime: affectedService.responseTime,
+            status: affectedService.status,
+          } : null}
+          affectedCount={affectedCount}
+          downCount={downCount}
+          uptime30d={uptime30d}
+          onRefresh={refresh}
         />
 
         <div className="about-blurb">{activeBrandMeta.description}</div>
@@ -105,6 +134,7 @@ export default function StatusPageClient({ initialBrand }: { initialBrand: Brand
           dailyUptime={data?.dailyUptime}
           dailyFuncUptime={data?.dailyFuncUptime}
           historyLoading={historyLoading}
+          loadError={error}
           onRefresh={refresh}
         />
 

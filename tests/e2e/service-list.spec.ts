@@ -253,6 +253,19 @@ test.describe('Status Page — service list', () => {
     await expect(bars).toHaveCount(30);
   });
 
+  test('every service row shows a 30-day uptime percentage', async ({ page }) => {
+    const pom = new StatusPagePOM(page);
+    const rows = pom.serviceRows;
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const pct = rows.nth(i).locator('.uptime-pct b');
+      await expect(pct).toBeVisible();
+      await expect(pct).toHaveText(/^\d+\.\d{2}%$/);
+    }
+  });
+
   test('uptime legend is visible with all four states', async ({ page }) => {
     const pom = new StatusPagePOM(page);
     await expect(pom.uptimeLegend).toBeVisible();
@@ -294,6 +307,12 @@ test.describe('Status Page — service list', () => {
 
     const degradedBadge = pom.serviceRows.nth(1).locator('.badge.degraded');
     await expect(degradedBadge).toHaveText('มีปัญหา');
+
+    // Today's bar must agree with the live badge, even though the mock says 100%.
+    await expect(pom.serviceRows.nth(1).locator('.uptime-bars')).toHaveClass(/bars-loaded/);
+    const todayBar = pom.serviceRows.nth(1).locator('.uptime-bar').last();
+    await expect(todayBar).toHaveClass(/degraded/);
+    await expect(todayBar).not.toHaveClass(/status-loaded/);
   });
 });
 

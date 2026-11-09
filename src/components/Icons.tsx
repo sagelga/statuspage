@@ -34,9 +34,15 @@ export const Icons: Partial<Record<string, LucideIcon>> = {
   'book-open': BookOpen,
 };
 
-export const HeroIcons: Record<'degraded' | 'down', LucideIcon> = {
+export const HeroIcons: Record<
+  'operational' | 'degraded' | 'down' | 'loading' | 'error',
+  LucideIcon
+> = {
+  operational: Check,
   degraded: CircleAlert,
   down: CircleX,
+  loading: RefreshCw,
+  error: CircleAlert,
 };
 
 export const StatusLabels: Record<string, string> = {

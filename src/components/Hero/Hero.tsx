@@ -1,58 +1,217 @@
 import React from 'react';
-import { HeroIcons, HeroTitles } from '../Icons';
+import { RefreshCw, type LucideIcon } from 'lucide-react';
+import { HeroIcons } from '../Icons';
 import { ServiceStatus } from '../../types';
 import './Hero.style.css';
 
-interface HeroProps {
-  status?: ServiceStatus | 'loading';
-  checkedAt?: string;
-  error?: boolean;
+type DisplayStatus = ServiceStatus | 'loading' | 'error';
+
+interface AffectedService {
+  name: string;
+  responseTime: number | null;
+  status: ServiceStatus;
 }
 
-export const Hero: React.FC<HeroProps> = ({ status = 'loading', checkedAt, error }) => {
-  if (error) {
-    const ErrorIcon = HeroIcons.down;
-    return (
-      <div className="hero">
-        <div className="hero-banner down">
-          <div className="hero-icon">
-            <ErrorIcon />
+interface HeroProps {
+  status: ServiceStatus | 'loading';
+  checkedAt?: string;
+  error?: boolean;
+  serviceCount: number;
+  affectedService?: AffectedService | null;
+  affectedCount?: number;
+  downCount?: number;
+  uptime30d?: number | null;
+  onRefresh?: () => void;
+}
+
+const TITLES: Record<DisplayStatus, string> = {
+  operational: 'ทุกระบบทำงานปกติ',
+  degraded: 'บางบริการทำงานช้าลง',
+  down: 'มีบริการที่ใช้งานไม่ได้',
+  loading: 'กำลังตรวจสอบสถานะ…',
+  error: 'ตรวจสอบสถานะไม่ได้',
+};
+
+const KICKERS: Record<DisplayStatus, string> = {
+  operational: 'สถานะปัจจุบัน',
+  degraded: 'พบความหน่วง',
+  down: 'ต้องการความสนใจ',
+  loading: 'กรุณารอสักครู่',
+  error: 'เชื่อมต่อข้อมูลไม่ได้',
+};
+
+const ICONS: Record<DisplayStatus, LucideIcon> = {
+  operational: HeroIcons.operational,
+  degraded: HeroIcons.degraded,
+  down: HeroIcons.down,
+  loading: HeroIcons.loading,
+  error: HeroIcons.error,
+};
+
+function formatCheckedAt(value?: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatResponseTime(value: number | null): string | null {
+  if (value === null || !Number.isFinite(value)) return null;
+  return `${value.toLocaleString('en-US')} ms`;
+}
+
+export const Hero: React.FC<HeroProps> = ({
+  status,
+  checkedAt,
+  error = false,
+  serviceCount,
+  affectedService = null,
+  affectedCount = 0,
+  downCount = 0,
+  uptime30d = null,
+  onRefresh,
+}) => {
+  const displayStatus: DisplayStatus = error ? 'error' : status;
+  const checkedTime = formatCheckedAt(checkedAt);
+  const responseTime = affectedService ? formatResponseTime(affectedService.responseTime) : null;
+  const affectedTotal = Math.max(affectedCount, affectedService ? 1 : 0);
+  const StatusIcon = ICONS[displayStatus];
+
+  let sub: React.ReactNode;
+  let aside: React.ReactNode = null;
+
+  switch (displayStatus) {
+    case 'operational':
+      sub = (
+        <>
+          {checkedTime ? (
+            <>
+              ตรวจสอบล่าสุด <strong>{checkedTime} น.</strong> ·{' '}
+            </>
+          ) : null}
+          {serviceCount} บริการที่ตรวจสอบ
+        </>
+      );
+      if (uptime30d !== null || onRefresh) {
+        aside = (
+          <div className="hero-aside">
+            {uptime30d !== null && (
+              <div className="hero-uptime">
+                <b>{uptime30d.toFixed(2)}%</b>
+                <span>ความพร้อมใช้งาน 30 วัน</span>
+              </div>
+            )}
+            {onRefresh && (
+              <button type="button" className="hero-refresh" onClick={onRefresh}>
+                <RefreshCw aria-hidden="true" />
+                รีเฟรช
+              </button>
+            )}
           </div>
-          <div className="hero-text">
-            <h1 className="hero-title">ไม่สามารถโหลดสถานะได้</h1>
-            <p className="hero-sub">กรุณาลองรีเฟรชหน้าเว็บ</p>
+        );
+      }
+      break;
+
+    case 'degraded':
+      sub = (
+        <>
+          {affectedTotal > 1 ? (
+            <>มี <strong>{affectedTotal} บริการ</strong> ที่ต้องดู ·{' '}</>
+          ) : affectedService ? (
+            <>
+              <strong>{affectedService.name}</strong>
+              {responseTime ? (
+                <>
+                  {' '}· <span className="hero-mono">{responseTime}</span>
+                </>
+              ) : null}
+              {' '}ตอบสนองช้าลง ·{' '}
+            </>
+          ) : (
+            <>บางบริการตอบสนองช้าลง ·{' '}</>
+          )}
+          <a className="hero-link" href="#components">ดูรายละเอียด</a>
+        </>
+      );
+      aside = (
+        <div className="hero-aside">
+          <div className="hero-uptime">
+            <b>{affectedTotal}</b>
+            <span>บริการที่มีปัญหา</span>
           </div>
+          {onRefresh && (
+            <button type="button" className="hero-refresh" onClick={onRefresh}>
+              <RefreshCw aria-hidden="true" />
+              รีเฟรช
+            </button>
+          )}
         </div>
-      </div>
-    );
+      );
+      break;
+
+    case 'down':
+      sub = (
+        <>
+          {downCount > 1 ? (
+            <>มี <strong>{downCount} บริการ</strong> ที่ใช้งานไม่ได้ ·{' '}</>
+          ) : affectedService ? (
+            <>
+              <strong>{affectedService.name}</strong> ไม่ตอบสนองในขณะนี้ ·{' '}
+            </>
+          ) : (
+            <>มีบริการที่ไม่ตอบสนอง ·{' '}</>
+          )}
+          <a className="hero-link" href="#components">ดูรายละเอียด</a>
+        </>
+      );
+      aside = (
+        <div className="hero-aside">
+          <div className="hero-uptime">
+            <b>{Math.max(downCount, 1)}</b>
+            <span>บริการที่ใช้งานไม่ได้</span>
+          </div>
+          {onRefresh && (
+            <button type="button" className="hero-refresh" onClick={onRefresh}>
+              <RefreshCw aria-hidden="true" />
+              รีเฟรช
+            </button>
+          )}
+        </div>
+      );
+      break;
+
+    case 'loading':
+      sub = 'กำลังรวบรวมผลการตรวจสอบล่าสุด';
+      break;
+
+    case 'error':
+    default:
+      sub = 'เชื่อมต่อข้อมูลสถานะไม่ได้ ข้อมูลที่เห็นอาจไม่ใช่ข้อมูลล่าสุด และไม่ได้หมายความว่าบริการล่ม';
+      break;
   }
 
-  if (status === 'operational' || status === 'loading') return null;
-
-  const Icon = status === 'degraded' ? HeroIcons.degraded : HeroIcons.down;
-
   return (
-    <div className="hero">
-      <div className={`hero-banner ${status}`}>
-        <div className="hero-icon">
-          <Icon />
+    <section className="hero" aria-busy={displayStatus === 'loading'}>
+      <div className={`hero-banner ${displayStatus}`}>
+        <div className="hero-icon" aria-hidden="true">
+          <StatusIcon className={displayStatus === 'loading' ? 'spin' : undefined} />
         </div>
         <div className="hero-text">
-          <h1 className="hero-title">{HeroTitles[status] || status}</h1>
-          <p className="hero-sub">
-            ตรวจสอบล่าสุด:{' '}
-            {checkedAt
-              ? new Date(checkedAt).toLocaleString('th-TH', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '—'}
+          <p className="hero-kicker">
+            <span className="hero-live-dot" aria-hidden="true"></span>
+            {KICKERS[displayStatus]}
           </p>
+          <h1 className="hero-title" aria-live="polite" aria-atomic="true">{TITLES[displayStatus]}</h1>
+          <p className="hero-sub">{sub}</p>
+          {displayStatus === 'error' && onRefresh && (
+            <button type="button" className="hero-retry" onClick={onRefresh}>
+              <RefreshCw aria-hidden="true" />
+              ลองอีกครั้ง
+            </button>
+          )}
         </div>
+        {aside}
       </div>
-    </div>
+    </section>
   );
 };

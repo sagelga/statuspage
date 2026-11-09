@@ -21,6 +21,27 @@ import './ServiceList.style.css';
 
 const EMPTY_HISTORY: Record<string, (ServiceStatus | 'nodata')[]> = {};
 
+/** Match a media query without a server/client hydration mismatch. */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia(query);
+    const update = () => setMatches(mql.matches);
+    update();
+
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', update);
+      return () => mql.removeEventListener('change', update);
+    }
+    mql.addListener(update);
+    return () => mql.removeListener(update);
+  }, [query]);
+
+  return matches;
+}
+
 interface ServiceListProps {
   checkedAt: string;
   visibleServices: ServiceDefinition[];
@@ -30,6 +51,7 @@ interface ServiceListProps {
   /** (operational + degraded) / total — service was responding, even if slow */
   dailyFuncUptime?: Record<string, (number | null)[]>;
   historyLoading?: boolean;
+  loadError?: boolean;
   onRefresh?: () => void;
 }
 
@@ -41,9 +63,14 @@ export const ServiceList: React.FC<ServiceListProps> = ({
   dailyUptime,
   dailyFuncUptime,
   historyLoading = false,
+  loadError = false,
   onRefresh,
 }) => {
   const [expanded, setExpanded] = useState<ExpandedDay | null>(null);
+  const isMobileViewport = useMediaQuery('(max-width: 640px)');
+  const visibleDays = isMobileViewport ? 14 : 30;
+  const hasServices = services !== undefined && services.length > 0;
+  const showLoadError = loadError && !hasServices;
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
   const minuteCache = useRef(
     new WeakMap<object, Record<string, (ServiceStatus | 'nodata')[]>>(),
@@ -203,6 +230,12 @@ export const ServiceList: React.FC<ServiceListProps> = ({
               กำลังโหลดประวัติ 30 วัน…
             </p>
           )}
+          {loadError && hasServices && (
+            <p className="stale-hint" role="status">
+              <span className="dot" aria-hidden="true" />
+              ข้อมูลอาจไม่เป็นปัจจุบัน · แสดงข้อมูลล่าสุดที่บันทึกไว้
+            </p>
+          )}
         </div>
         <RefreshTimer
           lastUpdated={checkedAt}
@@ -212,56 +245,69 @@ export const ServiceList: React.FC<ServiceListProps> = ({
       </div>
 
       <div className="components-card" id="components">
-        {visibleServices.map((definition) => {
-          const loaded = services?.find((service) => service.id === definition.id);
-          const isExpanded =
-            loaded !== undefined && visibleExpanded?.serviceId === definition.id;
+        {showLoadError ? (
+          <div className="load-error-panel" role="alert">
+            <p className="load-error-title">โหลดสถานะบริการไม่ได้</p>
+            <p className="load-error-desc">กรุณาลองอีกครั้ง หรือรอสักครู่แล้วรีเฟรช</p>
+            <button type="button" className="load-error-retry" onClick={() => onRefresh?.()}>
+              ลองอีกครั้ง
+            </button>
+          </div>
+        ) : (
+          <>
+            {visibleServices.map((definition) => {
+              const loaded = services?.find((service) => service.id === definition.id);
+              const isExpanded =
+                loaded !== undefined && visibleExpanded?.serviceId === definition.id;
 
-          return (
-            <ServiceRow
-              key={definition.id}
-              definition={definition}
-              loaded={loaded}
-              history={history}
-              dailyUptime={dailyUptime}
-              dailyFuncUptime={dailyFuncUptime}
-              dateIso={dateIso}
-              dateLabels={dateLabels}
-              historyLoading={historyLoading}
-              expanded={visibleExpanded}
-              isExpanded={isExpanded}
-              openTooltip={openTooltip === definition.id}
-              timezoneLabel={tzLabel}
-              onToggleTooltip={() =>
-                setOpenTooltip((current) =>
-                  current === definition.id ? null : definition.id,
-                )
-              }
-              onBarHover={(dayIndex, iso, label) =>
-                handleBarHover(definition.id, dayIndex, iso, label)
-              }
-              onBarClick={(dayIndex, iso, label) =>
-                handleBarClick(definition.id, dayIndex, iso, label)
-              }
-              onRowLeave={() => handleRowLeave(definition.id)}
-            />
-          );
-        })}
+              return (
+                <ServiceRow
+                  key={definition.id}
+                  definition={definition}
+                  loaded={loaded}
+                  history={history}
+                  dailyUptime={dailyUptime}
+                  dailyFuncUptime={dailyFuncUptime}
+                  dateIso={dateIso}
+                  dateLabels={dateLabels}
+                  historyLoading={historyLoading}
+                  expanded={visibleExpanded}
+                  isExpanded={isExpanded}
+                  openTooltip={openTooltip === definition.id}
+                  timezoneLabel={tzLabel}
+                  visibleDays={visibleDays}
+                  onToggleTooltip={() =>
+                    setOpenTooltip((current) =>
+                      current === definition.id ? null : definition.id,
+                    )
+                  }
+                  onBarHover={(dayIndex, iso, label) =>
+                    handleBarHover(definition.id, dayIndex, iso, label)
+                  }
+                  onBarClick={(dayIndex, iso, label) =>
+                    handleBarClick(definition.id, dayIndex, iso, label)
+                  }
+                  onRowLeave={() => handleRowLeave(definition.id)}
+                />
+              );
+            })}
 
-        <div className="uptime-legend">
-          <span>
-            <span className="uptime-legend-dot operational" /> ทำงานปกติ
-          </span>
-          <span>
-            <span className="uptime-legend-dot degraded" /> ล่าช้า
-          </span>
-          <span>
-            <span className="uptime-legend-dot down" /> ล่ม
-          </span>
-          <span>
-            <span className="uptime-legend-dot nodata" /> ไม่มีข้อมูล
-          </span>
-        </div>
+            <div className="uptime-legend">
+              <span>
+                <span className="uptime-legend-dot operational" /> ทำงานปกติ
+              </span>
+              <span>
+                <span className="uptime-legend-dot degraded" /> ล่าช้า
+              </span>
+              <span>
+                <span className="uptime-legend-dot down" /> ล่ม
+              </span>
+              <span>
+                <span className="uptime-legend-dot nodata" /> ไม่มีข้อมูล
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

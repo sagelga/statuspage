@@ -52,11 +52,13 @@ test.describe('Mobile — page renders correctly at 390px', () => {
     }
   });
 
-  test('uptime bars are visible on mobile', async ({ page }) => {
+  test('uptime bars shrink to 14 days on mobile', async ({ page }) => {
     const pom = new StatusPagePOM(page);
-    const firstRowBars = pom.serviceRows.first().locator('.uptime-bar');
+    const firstRow = pom.serviceRows.first();
+    const firstRowBars = firstRow.locator('.uptime-bar');
     await expect(firstRowBars.first()).toBeVisible();
-    await expect(firstRowBars).toHaveCount(30);
+    await expect(firstRowBars).toHaveCount(14);
+    await expect(firstRow.locator('.uptime-footer')).toContainText('14 วันก่อน');
   });
 
   test('footer is visible on mobile', async ({ page }) => {
@@ -119,6 +121,52 @@ test.describe('Mobile — narrow viewport (375px, iPhone SE)', () => {
       (el) => parseFloat(window.getComputedStyle(el).fontSize)
     );
     expect(fontSize).toBeGreaterThanOrEqual(14);
+  });
+
+  test('long Thai service name wraps instead of being ellipsized, and endpoint host is visible', async ({ page }) => {
+    await mockApiRoutes(page);
+    const pom = new StatusPagePOM(page);
+    await pom.goto();
+    await pom.waitForServicesLoaded();
+
+    const longRow = pom.serviceRows.filter({
+      has: page.locator('.component-name', { hasText: 'โฮสต์' }),
+    });
+    await expect(longRow).toHaveCount(1);
+
+    const name = longRow.locator('.component-name');
+    await expect(name).toContainText('โฮสต์');
+
+    const nameStyles = await name.evaluate((el) => {
+      const cs = window.getComputedStyle(el);
+      return {
+        whiteSpace: cs.whiteSpace,
+        textOverflow: cs.textOverflow,
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      };
+    });
+    // Either the text fits, or it is allowed to wrap — but never a single-line ellipsis.
+    expect(
+      nameStyles.scrollWidth <= nameStyles.clientWidth + 1 ||
+      nameStyles.whiteSpace === 'normal',
+    ).toBe(true);
+    expect(nameStyles.whiteSpace).toBe('normal');
+    expect(nameStyles.textOverflow).not.toBe('ellipsis');
+
+    await expect(longRow.locator('.component-url')).toBeVisible();
+    await expect(longRow.locator('.component-url')).toHaveText('s.byteside.one');
+  });
+
+  test('uptime bars shrink to 14 days at 375px too', async ({ page }) => {
+    await mockApiRoutes(page);
+    const pom = new StatusPagePOM(page);
+    await pom.goto();
+    await pom.waitForServicesLoaded();
+
+    const firstRow = pom.serviceRows.first();
+    await expect(firstRow.locator('.uptime-bar')).toHaveCount(14);
+    await expect(firstRow.locator('.uptime-footer')).toContainText('14 วันก่อน');
   });
 });
 
