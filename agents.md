@@ -8,6 +8,7 @@
 - [2026-11-08] [fix] Darkened the light-theme warning token so degraded history bars meet the non-text contrast floor — files: src/app/globals.css
 - [2026-11-08] [chore] Merged the origin/main status-layer refactor and ported the approved always-on banner, mobile/14-day uptime, stale-error state, theme contracts, and review fixes into StatusPageClient/useStatusData/ServiceRow/UptimeBars — files: src/components/StatusPageClient.tsx, src/hooks/useStatusData.ts, src/components/Hero/Hero.tsx, src/components/Icons.tsx, src/components/ServiceList/*, src/app/globals.css, src/app/layout.tsx, tests/e2e/*
 
+- [2026-11-09] [fix] Mosaic dots now render at an identical size (integer-pixel square tracks via `round()`, `justify-content: space-between`, `aspect-ratio: 1`) — files: src/components/ServiceList/ServiceList.style.css, tests/e2e/mosaic.spec.ts
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
