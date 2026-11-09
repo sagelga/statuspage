@@ -1,12 +1,17 @@
-'use client';
+"use client";
 
-import React, { useEffect, useId } from 'react';
-import './BottomSheet.css';
+import React, { useEffect, useId } from "react";
+import "./BottomSheet.css";
 
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  /** Small label above the title, e.g. a section name. */
+  eyebrow?: string;
+  /** "dark" keeps the always-dark sheet look; "page" follows the page theme. */
+  variant?: "dark" | "page";
+  closeLabel?: string;
   children: React.ReactNode;
 }
 
@@ -18,21 +23,25 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
+  eyebrow,
+  variant = "dark",
+  closeLabel = "Close",
   children,
 }) => {
   const sheetId = useId();
   const titleId = `${sheetId}-title`;
+  const isPageTheme = variant === "page";
 
   useEffect(() => {
     if (!isOpen) return;
 
     openSheets.push(sheetId);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     return () => {
       const index = openSheets.indexOf(sheetId);
       if (index !== -1) openSheets.splice(index, 1);
-      if (openSheets.length === 0) document.body.style.overflow = '';
+      if (openSheets.length === 0) document.body.style.overflow = "";
     };
   }, [isOpen, sheetId]);
 
@@ -40,13 +49,13 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== "Escape") return;
       if (openSheets[openSheets.length - 1] !== sheetId) return;
       onClose();
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose, sheetId]);
 
   const handleOverlayClick = (event: React.MouseEvent) => {
@@ -56,20 +65,26 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="bottom-sheet-overlay" onClick={handleOverlayClick}>
+    <div
+      className={`bottom-sheet-overlay${isPageTheme ? " bottom-sheet-overlay--page" : ""}`}
+      onClick={handleOverlayClick}
+    >
       <div
-        className="bottom-sheet"
+        className={`bottom-sheet${isPageTheme ? " bottom-sheet--page" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
         <div className="bottom-sheet-drag-handle" />
         <div className="bottom-sheet-header">
-          <h2 id={titleId}>{title}</h2>
+          <div className="bottom-sheet-heading">
+            {eyebrow && <p className="bottom-sheet-eyebrow">{eyebrow}</p>}
+            <h2 id={titleId}>{title}</h2>
+          </div>
           <button
             className="bottom-sheet-close"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={closeLabel}
           >
             <svg
               width="20"

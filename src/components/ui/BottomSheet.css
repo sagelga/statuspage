@@ -92,6 +92,166 @@
   padding: 0.75rem;
 }
 
+/* ── Page-themed variant ─────────────────────────────────────────
+   Used by the cookie preferences sheet. Surfaces follow the page's
+   own tokens so the sheet never fights the active brand or theme.
+   ────────────────────────────────────────────────────────────────── */
+
+.bottom-sheet-overlay--page {
+  background: rgba(10, 6, 16, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+html.dark-theme .bottom-sheet-overlay--page {
+  background: rgba(3, 1, 8, 0.66);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) .bottom-sheet-overlay--page {
+    background: rgba(3, 1, 8, 0.66);
+  }
+}
+
+.bottom-sheet--page {
+  --bs-bg: var(--card-bg, #fdfcff);
+  --bs-bg-2: color-mix(in srgb, var(--card-bg, #fdfcff) 97%, var(--text, #111827) 3%);
+  --bs-border: var(--card-border, #e9e4f0);
+  --bs-text: var(--text, #111827);
+  --bs-muted: var(--text-muted, #6b7280);
+  --bs-chip: color-mix(in srgb, var(--text, #111827) 6%, transparent);
+  --bs-accent: var(--brand, #52006a);
+  --bs-accent-strong: var(--brand, #52006a);
+  --bs-accent-soft: color-mix(in srgb, var(--brand, #52006a) 9%, transparent);
+  --bs-accent-border: color-mix(in srgb, var(--brand, #52006a) 20%, transparent);
+  --bs-outline: var(--card-border, #e9e4f0);
+  --bs-btn-bg: var(--brand, #52006a);
+  --bs-btn-fg: #ffffff;
+  --bs-btn-shadow: rgba(82, 0, 106, 0.2);
+
+  display: flex;
+  flex-direction: column;
+  max-width: 540px;
+  max-height: min(92vh, 760px);
+  background: var(--bs-bg);
+  border-color: var(--bs-border);
+  border-radius: 20px 20px 0 0;
+  color: var(--bs-text);
+  box-shadow: 0 -18px 60px rgba(24, 12, 36, 0.22);
+}
+
+.bottom-sheet--page .bottom-sheet-drag-handle {
+  background: color-mix(in srgb, var(--bs-text) 16%, transparent);
+}
+
+.bottom-sheet--page .bottom-sheet-header {
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 17px 22px 13px;
+  border-bottom-color: var(--bs-border);
+}
+
+.bottom-sheet--page .bottom-sheet-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bottom-sheet--page .bottom-sheet-eyebrow {
+  margin: 0 0 2px;
+  color: var(--bs-accent);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.bottom-sheet--page .bottom-sheet-header h2 {
+  color: var(--bs-text);
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+
+.bottom-sheet--page .bottom-sheet-close {
+  color: var(--bs-muted);
+}
+
+.bottom-sheet--page .bottom-sheet-close:hover {
+  background: var(--bs-chip);
+  color: var(--bs-text);
+}
+
+.bottom-sheet--page .bottom-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+  scrollbar-width: thin;
+}
+
+/* ByteSide dark — explicit class */
+html.dark-theme .bottom-sheet--page {
+  --bs-accent: #c4b5fd;
+  --bs-accent-strong: #d8ccff;
+  --bs-accent-soft: rgba(167, 139, 250, 0.14);
+  --bs-accent-border: rgba(196, 181, 253, 0.28);
+  --bs-btn-bg: #a78bfa;
+  --bs-btn-fg: #1a0f2d;
+  --bs-btn-shadow: rgba(167, 139, 250, 0.22);
+  --bs-outline: rgba(255, 255, 255, 0.16);
+}
+
+/* ByteSide dark — system preference */
+@media (prefers-color-scheme: dark) {
+  html:not(.light-theme) .bottom-sheet--page {
+    --bs-accent: #c4b5fd;
+    --bs-accent-strong: #d8ccff;
+    --bs-accent-soft: rgba(167, 139, 250, 0.14);
+    --bs-accent-border: rgba(196, 181, 253, 0.28);
+    --bs-btn-bg: #a78bfa;
+    --bs-btn-fg: #1a0f2d;
+    --bs-btn-shadow: rgba(167, 139, 250, 0.22);
+    --bs-outline: rgba(255, 255, 255, 0.16);
+  }
+}
+
+/* sagelga light — warm amber accents, navy primary */
+html.sagelga-brand .bottom-sheet--page {
+  --bs-accent: #8a5a10;
+  --bs-accent-strong: #6f4a0e;
+  --bs-accent-soft: #f8edda;
+  --bs-accent-border: #ecd9b8;
+  --bs-btn-bg: var(--brand, #3b4a8c);
+  --bs-btn-fg: #fbf7ee;
+  --bs-btn-shadow: rgba(59, 74, 140, 0.24);
+}
+
+/* sagelga dark — explicit class */
+html.sagelga-brand.dark-theme .bottom-sheet--page {
+  --bs-accent: #e0b45c;
+  --bs-accent-strong: #f0c979;
+  --bs-accent-soft: rgba(201, 148, 58, 0.14);
+  --bs-accent-border: rgba(224, 180, 92, 0.28);
+  --bs-btn-bg: #c9943a;
+  --bs-btn-fg: #241a0c;
+  --bs-btn-shadow: rgba(201, 148, 58, 0.18);
+}
+
+/* sagelga dark — system preference */
+@media (prefers-color-scheme: dark) {
+  html.sagelga-brand:not(.light-theme) .bottom-sheet--page {
+    --bs-accent: #e0b45c;
+    --bs-accent-strong: #f0c979;
+    --bs-accent-soft: rgba(201, 148, 58, 0.14);
+    --bs-accent-border: rgba(224, 180, 92, 0.28);
+    --bs-btn-bg: #c9943a;
+    --bs-btn-fg: #241a0c;
+    --bs-btn-shadow: rgba(201, 148, 58, 0.18);
+  }
+}
+
 /* Ensure all buttons inside the sheet inherit the page font */
 .bottom-sheet button {
   font-family: inherit;
@@ -101,4 +261,6 @@
   .bottom-sheet { max-width: 100%; }
   .bottom-sheet-header { padding: 1rem 1.25rem; }
   .bottom-sheet-body { padding: 0.5rem; }
+  .bottom-sheet--page { max-height: 94vh; }
+  .bottom-sheet--page .bottom-sheet-header { padding: 15px 18px 12px; }
 }
